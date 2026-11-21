@@ -1,0 +1,14 @@
+{
+  "name": "bgm-index-reader",
+  "version": "0.1.39",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/run.mjs",
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "jsdom": "^26.1.0"
+  }
+}

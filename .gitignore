@@ -1,0 +1,6 @@
+node_modules/
+.tmp-*/
+auth-login.txt
+gh-page.png
+shot*.png
+*.log
