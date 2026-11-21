@@ -5397,7 +5397,7 @@ function addToIndex(indexId) {
         li.dataset.bgmIndex = String(idx);
         parseItem(li);
       });
-      if (collectionBulkLoaded) applyCollectionBulk();
+      applyCollectionBulk();
       fadeCovers(list);
       applyState();
       collectionChunkLoading = false;
@@ -5446,7 +5446,7 @@ function addToIndex(indexId) {
         parseItem(li);
       });
       collectionInfiniteRendered += added.length;
-      if (collectionBulkLoaded) applyCollectionBulk();
+      applyCollectionBulk();
       fadeCovers(list);
       if (state.q || state.state !== 'all' || state.score !== 'all') {
         applyState();
@@ -5643,7 +5643,7 @@ function addToIndex(indexId) {
         if (li.dataset.bgmType) typeSet[li.dataset.bgmType] = 1;
       });
       mixedTypes = Object.keys(typeSet).length > 1;
-      if (collectionBulkLoaded) applyCollectionBulk();
+      applyCollectionBulk();
       fadeCovers(list);
       applyState();
       if (pendingCollectionSort) {
