@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.42
+// @version      0.1.43
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -755,7 +755,7 @@ html.bgm-idx-focus #browserItemList.bgm-idx-on {
   opacity: 1;
 }
 #browserItemList.bgm-idx-on li.item .bgm-idx-watch-count {
-  display: none;
+  display: none !important;
   position: absolute;
   right: 12px;
   bottom: 8px;
@@ -764,15 +764,13 @@ html.bgm-idx-focus #browserItemList.bgm-idx-on {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-#browserItemList.bgm-idx-on:not([data-bgm-view="grid"]) li.item .bgm-idx-watch-count {
-  display: inline-flex;
+#browserItemList.bgm-idx-on.bgm-idx-show-staff:not([data-bgm-view="grid"]) li.item .bgm-idx-watch-count {
+  display: inline-flex !important;
 }
 #browserItemList.bgm-idx-on li.item .bgm-idx-watch-count[hidden] {
   display: none !important;
 }
-#browserItemList.bgm-idx-other .bgm-idx-watch-count {
-  display: none !important;
-}
+
 #browserItemList.bgm-idx-on li.item .bgm-idx-state {
   display: none;
   align-items: center;
