@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.44
+// @version      0.1.45
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1900,7 +1900,7 @@ html.bgm-idx-dragging * {
     s.score = DEFAULTS.score;
     s.state = DEFAULTS.state;
     if (s.view !== 'timeline' && s.view !== 'list' && s.view !== 'grid') s.view = DEFAULTS.view;
-    s.sort = s.view === 'timeline' ? 'date-asc' : DEFAULTS.sort;
+    s.sort = s.view === 'timeline' && !isCollectionPage ? 'date-asc' : DEFAULTS.sort;
     if (s.density !== 'compact' && s.density !== 'relaxed') s.density = DEFAULTS.density;
     if (s.coverSize !== 'small' && s.coverSize !== 'medium' && s.coverSize !== 'large') s.coverSize = DEFAULTS.coverSize;
     if (s.sort !== 'default' && s.sort !== 'date-asc' && s.sort !== 'date-desc' && s.sort !== 'score-desc' && s.sort !== 'score-asc' && s.sort !== 'count-desc' && s.sort !== 'count-asc' && s.sort !== 'title-asc' && s.sort !== 'title-desc') s.sort = DEFAULTS.sort;
@@ -2784,6 +2784,7 @@ html.bgm-idx-dragging * {
     if (!key) return;
     if (state.view === 'timeline' && key !== 'date') return;
     if (state.view === 'timeline') {
+      if (isCollectionPage) return;
       var timelineDir = sortKey(state.sort) === 'date' ? sortDir(state.sort) : '';
       setSort('date', timelineDir === 'asc' ? 'desc' : 'asc');
       return;
@@ -2815,8 +2816,9 @@ html.bgm-idx-dragging * {
     var btn = $('#bgm-idx-sort-btn', toolbar);
     var menu = $('#bgm-idx-sort-menu', toolbar);
     if (btn) {
+      var timelineDir = isCollectionPage ? 'desc' : (dir === 'asc' ? 'asc' : 'desc');
       btn.textContent = state.view === 'timeline'
-        ? '放送日 ' + (dir === 'desc' ? '↓' : '↑')
+        ? '放送日 ' + (timelineDir === 'desc' ? '↓' : '↑')
         : sortText(state.sort);
     }
     if (menu) {
@@ -2825,7 +2827,11 @@ html.bgm-idx-dragging * {
         var hidden = state.view === 'timeline' && k !== 'date';
         item.hidden = hidden;
         item.setAttribute('aria-pressed', k === key ? 'true' : 'false');
-        var arrow = k === key && k !== 'default' ? ' ' + (dir === 'asc' ? '↑' : '↓') : '';
+        var arrow = '';
+        if (k === key && k !== 'default') {
+          var arrowDesc = isCollectionPage && state.view === 'timeline' ? true : dir !== 'asc';
+          arrow = ' ' + (arrowDesc ? '↓' : '↑');
+        }
         item.textContent = sortLabel(k) + arrow;
       });
     }
@@ -3209,8 +3215,30 @@ html.bgm-idx-dragging * {
   function setView(view) {
     if (view !== 'timeline' && view !== 'list' && view !== 'grid') return;
     if (state.view === view) return;
+    if (view === 'timeline' && isCollectionPage) {
+      var u = new URL(location.href);
+      var hasDateOrder = (u.searchParams.get('orderby') || '') === 'date';
+      u.searchParams.set('bgm-view', 'timeline');
+      u.searchParams.set('orderby', 'date');
+      if (!hasDateOrder) {
+        u.searchParams.delete('page');
+        window.location.href = u.href;
+        return;
+      }
+      state.view = 'timeline';
+      state.sort = 'default';
+      page = 1;
+      applyWithFlip(true);
+      raf(updateSegmented);
+      return;
+    }
     state.view = view;
     if (view === 'timeline' && sortKey(state.sort) !== 'date') state.sort = 'date-asc';
+    if (view !== 'timeline' && isCollectionPage) {
+      try {
+        if ((new URL(location.href).searchParams.get('orderby') || '') === 'date') state.sort = 'date-desc';
+      } catch (e) {}
+    }
     page = 1;
     applyWithFlip(true);
     raf(updateSegmented);
