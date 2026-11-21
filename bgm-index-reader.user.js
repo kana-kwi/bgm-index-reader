@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.40
+// @version      0.1.41
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -730,9 +730,9 @@ html.bgm-idx-focus #browserItemList.bgm-idx-on {
   border-radius: var(--idx-radius-pill);
   background: transparent;
   color: var(--idx-accent);
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 1.6;
+  line-height: 1;
   white-space: nowrap;
 }
 #browserItemList.bgm-idx-on li.item .bgm-idx-score.has-myrate .bgm-idx-myrate {
