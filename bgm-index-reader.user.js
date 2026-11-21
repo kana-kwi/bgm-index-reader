@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.41
+// @version      0.1.42
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -5251,7 +5251,7 @@ function addToIndex(indexId) {
       delete li.dataset.bgmRatingPending;
       delete li.dataset.bgmRatingFailed;
       if (isCollectionPage) {
-        var score = d.rate > 0 ? d.rate : (own ? d.score : 0);
+        var score = own ? d.score : (d.rate > 0 ? d.rate : 0);
         if (score > 0) {
           li.dataset.bgmScore = String(score);
           delete li.dataset.bgmRatingNone;
@@ -5259,7 +5259,7 @@ function addToIndex(indexId) {
           li.dataset.bgmScore = '';
           li.dataset.bgmRatingNone = '1';
         }
-        li.dataset.bgmCount = own && !(d.rate > 0) && score > 0 && d.collectionTotal ? String(d.collectionTotal) : '';
+        li.dataset.bgmCount = own && score > 0 && d.collectionTotal ? String(d.collectionTotal) : '';
         applySubjectName(li, { name: d.name, nameCn: d.nameCn });
         renderScore(li);
         return;
