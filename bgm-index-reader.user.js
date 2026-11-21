@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.43
+// @version      0.1.44
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1896,11 +1896,11 @@ html.bgm-idx-dragging * {
       if (sc === 'all' || sc === '6' || sc === '7' || sc === '8' || sc === '9' || sc === 'none') s.score = sc;
       if (q != null) s.q = q;
     } catch (e) {}
-    s.sort = DEFAULTS.sort;
     s.pageSize = DEFAULTS.pageSize;
     s.score = DEFAULTS.score;
     s.state = DEFAULTS.state;
     if (s.view !== 'timeline' && s.view !== 'list' && s.view !== 'grid') s.view = DEFAULTS.view;
+    s.sort = s.view === 'timeline' ? 'date-asc' : DEFAULTS.sort;
     if (s.density !== 'compact' && s.density !== 'relaxed') s.density = DEFAULTS.density;
     if (s.coverSize !== 'small' && s.coverSize !== 'medium' && s.coverSize !== 'large') s.coverSize = DEFAULTS.coverSize;
     if (s.sort !== 'default' && s.sort !== 'date-asc' && s.sort !== 'date-desc' && s.sort !== 'score-desc' && s.sort !== 'score-asc' && s.sort !== 'count-desc' && s.sort !== 'count-asc' && s.sort !== 'title-asc' && s.sort !== 'title-desc') s.sort = DEFAULTS.sort;
@@ -2783,6 +2783,11 @@ html.bgm-idx-dragging * {
   function toggleSort(key) {
     if (!key) return;
     if (state.view === 'timeline' && key !== 'date') return;
+    if (state.view === 'timeline') {
+      var timelineDir = sortKey(state.sort) === 'date' ? sortDir(state.sort) : '';
+      setSort('date', timelineDir === 'asc' ? 'desc' : 'asc');
+      return;
+    }
     if (isCollectionPage) {
       var sortUrl = new URL(location.href);
       sortUrl.searchParams.delete('page');
@@ -5686,9 +5691,11 @@ function addToIndex(indexId) {
       if (collectionPager) collectionPager.style.display = 'none';
       var collectionOrderby = '';
       try { collectionOrderby = new URLSearchParams(location.search).get('orderby') || ''; } catch (e) {}
-      if (collectionOrderby === 'rate') state.sort = 'score-desc';
-      else if (collectionOrderby === 'date') state.sort = 'date-desc';
-      else state.sort = 'default';
+      if (state.view !== 'timeline') {
+        if (collectionOrderby === 'rate') state.sort = 'score-desc';
+        else if (collectionOrderby === 'date') state.sort = 'date-desc';
+        else state.sort = 'default';
+      }
     } else {
       owner = ownerLink ? ownerLink.getAttribute('href').split('/').filter(Boolean).pop() : '';
     }
