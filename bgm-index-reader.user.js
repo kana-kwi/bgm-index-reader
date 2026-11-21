@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.39
+// @version      0.1.40
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -455,6 +455,7 @@ html.bgm-idx-ready[data-theme="dark"] {
 #browserItemList.bgm-idx-on li.item p.rateInfo {
   display: none !important;
 }
+
 #browserItemList.bgm-idx-on li.item .bgm-idx-score {
   grid-column: 2 !important;
   grid-row: 3 !important;
@@ -535,6 +536,9 @@ html.bgm-idx-ready[data-theme="dark"] {
   padding: 0 !important;
   font-size: 11px !important;
   color: var(--idx-text-3) !important;
+}
+#browserItemList.bgm-idx-collection li.item p.collectInfo {
+  display: none !important;
 }
 #browserItemList.bgm-idx-on li.item p.tools {
   display: block !important;
@@ -5234,8 +5238,8 @@ function addToIndex(indexId) {
     return m ? map[m[1]] : 0;
   }
 
-  function applyCollectionBulk() {
-    if (!collectionBulkLoaded) return;
+  function applyCollectionBulk(force) {
+    if (!isCollectionPage || !collectionBulkMap || !Object.keys(collectionBulkMap).length) return;
     var viewer = currentUsername();
     var own = !!owner && owner === viewer;
     getItems().forEach(function (li) {
@@ -5247,15 +5251,15 @@ function addToIndex(indexId) {
       delete li.dataset.bgmRatingPending;
       delete li.dataset.bgmRatingFailed;
       if (isCollectionPage) {
-        if (d.rate > 0) {
-          li.dataset.bgmScore = String(d.rate);
+        var score = d.rate > 0 ? d.rate : (own ? d.score : 0);
+        if (score > 0) {
+          li.dataset.bgmScore = String(score);
           delete li.dataset.bgmRatingNone;
         } else {
           li.dataset.bgmScore = '';
           li.dataset.bgmRatingNone = '1';
         }
-        li.dataset.bgmCount = '';
-
+        li.dataset.bgmCount = own && !(d.rate > 0) && score > 0 && d.collectionTotal ? String(d.collectionTotal) : '';
         applySubjectName(li, { name: d.name, nameCn: d.nameCn });
         renderScore(li);
         return;
@@ -5285,7 +5289,7 @@ function addToIndex(indexId) {
       }
       renderScore(li);
     });
-    if (booted) applyWithFlip(false);
+    if (booted && (force || collectionBulkLoaded)) applyWithFlip(false);
   }
 
   function loadCollectionBulk() {
@@ -5331,11 +5335,15 @@ function addToIndex(indexId) {
           });
           offset += limit;
           var total = data && typeof data.total === 'number' ? data.total : offset;
+          if (rows.length) {
+            collectionBulkMap = map;
+            applyCollectionBulk(false);
+          }
           if (offset < total && rows.length) return fetchNext();
           collectionBulkMap = map;
           collectionBulkLoaded = true;
           try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), map: map })); } catch (e) {}
-          applyCollectionBulk();
+          applyCollectionBulk(true);
         });
       }
       return fetchNext();
@@ -5693,6 +5701,7 @@ function addToIndex(indexId) {
     document.documentElement.classList.add('bgm-idx-ready');
     list.classList.add('bgm-idx-on');
     list.classList.toggle('bgm-idx-other', isOtherDirectory);
+    list.classList.toggle('bgm-idx-collection', isCollectionPage);
     injectStyle();
     buildToolbar();
     if (isCollectionPage) {

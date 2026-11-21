@@ -479,6 +479,8 @@ assert.equal(collItem.querySelector('h3 small').textContent, '生徒会役員共
 assert.equal(collItem.dataset.bgmCnName, '妄想学生会', 'collection cn name cached');
 assert.ok(collDoc.getElementById('bgm-idx-pager').hidden, 'collection pager hidden');
 assert.ok(collDoc.getElementById('bgm-idx-stats').hidden, 'collection stats hidden');
+assert.ok(collList.classList.contains('bgm-idx-collection'), 'collection class');
+assert.ok([...collDoc.querySelectorAll('style')].some((s) => s.textContent.includes('#browserItemList.bgm-idx-collection li.item p.collectInfo')), 'collection collectInfo hidden by style');
 domColl.window.__BGM_IDX_READER_DESTROY__();
 
 const otherCollectionHtml = collectionHtml.replace(/\/user\/kanakwi/g, '/user/steeto');
@@ -499,5 +501,38 @@ assert.equal(otherCollItem.dataset.bgmScore, '6', 'other collection owner rate s
 assert.equal(otherCollItem.dataset.bgmMyRate, '8', 'own rating kept on other collection');
 assert.equal(otherCollItem.querySelector('.bgm-idx-myrate').textContent, '8', 'own rating rendered on other collection');
 domOtherColl.window.__BGM_IDX_READER_DESTROY__();
+
+const ownNoRateFetch = (url) => {
+  if (url.includes('/v0/users/kanakwi/collections?')) {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ total: 1, data: [{ subject_id: 5649, rate: 0, type: 2, subject: { id: 5649, name: '生徒会役員共', name_cn: '妄想学生会', date: '2010-07-03', score: 8.4, rank: 100, collection_total: 999, images: { large: 'https://example.com/cover.jpg' } } }] }) });
+  }
+  if (url.includes('/v0/users/kanakwi/collections/5649')) {
+    return Promise.resolve({ ok: false, status: 404 });
+  }
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+};
+const domOwnNoRate = createDomFrom(collectionHtml, 'https://bgm.tv/anime/list/kanakwi/wish', null, ownNoRateFetch, 'kanakwi');
+await new Promise((resolve) => setTimeout(resolve, 700));
+const ownNoRateItem = domOwnNoRate.window.document.getElementById('item_5649');
+assert.equal(ownNoRateItem.dataset.bgmScore, '8.4', 'own unrated falls back to site score');
+assert.equal(ownNoRateItem.dataset.bgmCount, '999', 'own unrated shows site count');
+assert.equal(ownNoRateItem.dataset.bgmMyRate, undefined, 'own unrated has no my rate');
+domOwnNoRate.window.__BGM_IDX_READER_DESTROY__();
+
+const otherNoRateFetch = (url) => {
+  if (url.includes('/v0/users/steeto/collections?')) {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ total: 1, data: [{ subject_id: 5649, rate: 0, type: 2, subject: { id: 5649, name: '生徒会役員共', name_cn: '妄想学生会', date: '2010-07-03', score: 8.4, rank: 100, collection_total: 999, images: { large: 'https://example.com/cover.jpg' } } }] }) });
+  }
+  if (url.includes('/v0/users/kanakwi/collections/5649')) {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ rate: 8, type: 3 }) });
+  }
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+};
+const domOtherNoRate = createDomFrom(otherCollectionHtml, 'https://bgm.tv/anime/list/steeto/collect', null, otherNoRateFetch, 'kanakwi');
+await new Promise((resolve) => setTimeout(resolve, 700));
+const otherNoRateItem = domOtherNoRate.window.document.getElementById('item_5649');
+assert.equal(otherNoRateItem.dataset.bgmScore, '', 'other unrated hides site score');
+assert.equal(otherNoRateItem.dataset.bgmMyRate, '8', 'own rating still shown when owner unrated');
+domOtherNoRate.window.__BGM_IDX_READER_DESTROY__();
 
 console.log('all tests passed');
