@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.47
+// @version      0.1.48
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1562,18 +1562,19 @@ html.bgm-idx-dragging * {
 .bgm-idx-ui-pick {
   position: absolute;
   right: 8px;
-  top: 8px;
-  z-index: 7;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
+  bottom: 8px;
+  z-index: 9;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 3px;
   background: var(--idx-accent);
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 18px;
+  line-height: 16px;
   text-align: center;
+  pointer-events: none;
 }
 .bgm-idx-ui-select {
   position: absolute;
@@ -3179,22 +3180,39 @@ html.bgm-idx-dragging * {
   }
 
   function subjectSortAllowed() {
-    if (isCollectionPage || isOtherDirectory) return false;
+    if (isCollectionPage) return false;
+    if (!owner || !currentUsername() || owner !== currentUsername()) return false;
+    if (isOtherDirectory) return false;
     if (!document.getElementById('ModifyRelatedForm')) return false;
     return true;
   }
 
+  function subjectSortProblems() {
+    var out = [];
+    if (isCollectionPage) {
+      out.push('收藏页不支持排序');
+      return out;
+    }
+    if (!owner || !currentUsername() || owner !== currentUsername() || isOtherDirectory) {
+      out.push('只允许目录作者本人排序');
+      return out;
+    }
+    if (!document.getElementById('ModifyRelatedForm')) out.push('站点未提供编辑表单（可能未登录或页面未加载）');
+    if (state.view !== 'list' && state.view !== 'grid') out.push('当前是时间轴视图（请切到列表或封面）');
+    if (state.sort !== 'default') out.push('当前不是原顺序');
+    if (String(state.q || '').trim()) out.push('搜索框未清空');
+    if (state.state !== 'all') out.push('状态筛选未清除');
+    if (state.score !== 'all') out.push('评分筛选未清除');
+    if (state.pageSize !== 0) out.push('每页未设为“全部”');
+    return out;
+  }
+
   function subjectSortReady() {
-    if (!subjectSortAllowed()) return false;
-    if (state.sort !== 'default' || String(state.q || '').trim()) return false;
-    if (state.state !== 'all' || state.score !== 'all') return false;
-    if (state.pageSize !== 0) return false;
-    return true;
+    return subjectSortProblems().length === 0;
   }
 
   function subjectSortHint() {
-    if (!subjectSortAllowed()) return '仅目录作者可排序';
-    return '请先切回“原顺序”、清除搜索/状态/评分筛选，并把每页设为“全部”';
+    return '排序需要满足：' + subjectSortProblems().join('、');
   }
 
   function subjectSortRlt(li) {
@@ -4744,9 +4762,7 @@ html.bgm-idx-dragging * {
           <input id="bgm-idx-ui-q" type="search" placeholder="搜索目录名称…" autocomplete="off">
         </label>
 
-        <button type="button" id="bgm-idx-ui-new-folder" class="bgm-idx-btn">新建文件夹</button>
-        <button type="button" id="bgm-idx-ui-multi" class="bgm-idx-btn">多选</button>
-        <button type="button" id="bgm-idx-ui-sort" class="bgm-idx-btn">批量排序</button>
+
         <div id="bgm-idx-ui-stats" class="bgm-idx-stats" aria-live="polite"></div>
       </div>
     `;
@@ -5288,8 +5304,12 @@ activeFolder = null;
         var pickFolder = makeBtn('多选');
         pickFolder.disabled = !visible.length;
         pickFolder.addEventListener('click', enterMulti, { signal: ac.signal });
+        var sortFolder = makeBtn('批量排序');
+        sortFolder.disabled = !visible.length;
+        sortFolder.addEventListener('click', enterSortPick, { signal: ac.signal });
         actions.appendChild(batch);
         actions.appendChild(pickFolder);
+        actions.appendChild(sortFolder);
         actions.appendChild(edit);
         actions.appendChild(del);
         actions.appendChild(back);
@@ -5302,8 +5322,12 @@ activeFolder = null;
         var pickLoose = makeBtn('多选');
         pickLoose.disabled = !visible.length;
         pickLoose.addEventListener('click', enterMulti, { signal: ac.signal });
+        var sortLoose = makeBtn('批量排序');
+        sortLoose.disabled = !visible.length;
+        sortLoose.addEventListener('click', enterSortPick, { signal: ac.signal });
         actions.appendChild(create);
         actions.appendChild(pickLoose);
+        actions.appendChild(sortLoose);
       }
       row.appendChild(title);
       row.appendChild(actions);
@@ -5360,8 +5384,10 @@ activeFolder = null;
         var box = ensureSelectBox(li);
         var itemId = dirIdOf(li);
         var picked = selected.has(itemId);
-        box.hidden = !(visSet.has(li) && (multi || (selecting && active && !folderIdOf(li))));
-        box.checked = picked;
+        var pickAt = sortPick ? sortPicked.indexOf(itemId) : -1;
+        box.hidden = !(visSet.has(li) && (multi || sortPick || (selecting && active && !folderIdOf(li))));
+        box.checked = sortPick ? pickAt >= 0 : picked;
+        box.style.pointerEvents = sortPick ? 'none' : '';
         li.classList.toggle('is-multi', multi);
         li.classList.toggle('is-multi-selected', multi && picked);
         li.classList.toggle('is-sort-pick', sortPick);
