@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.54
+// @version      0.1.55
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1538,12 +1538,7 @@ html.bgm-idx-dragging * {
 #browserItemList.bgm-idx-on > li.item.is-subj-dragging {
   opacity: .45;
 }
-#browserItemList.bgm-idx-on > li.item.is-subj-over {
-  box-shadow: inset 0 2px 0 var(--idx-accent) !important;
-}
-#browserItemList.bgm-idx-on > li.item.is-subj-over-after {
-  box-shadow: inset 0 -2px 0 var(--idx-accent) !important;
-}
+
 #timeline.index-list li.index-item.is-dir-dragging {
   opacity: .45;
 }
@@ -3409,6 +3404,26 @@ html.bgm-idx-dragging * {
     }, true);
     var dragLi = null;
     var dragOriginal = null;
+    var subjectDragFrame = null;
+
+    function removeSubjectDragFrame() {
+      if (subjectDragFrame && subjectDragFrame.parentNode) subjectDragFrame.parentNode.removeChild(subjectDragFrame);
+      subjectDragFrame = null;
+    }
+
+    function showSubjectDragFrame(rect) {
+      if (!subjectDragFrame) {
+        subjectDragFrame = document.createElement('div');
+        subjectDragFrame.className = 'bgm-idx-ui-drop-frame';
+        subjectDragFrame.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(subjectDragFrame);
+      }
+      subjectDragFrame.style.left = rect.left + 'px';
+      subjectDragFrame.style.top = rect.top + 'px';
+      subjectDragFrame.style.width = rect.width + 'px';
+      subjectDragFrame.style.height = rect.height + 'px';
+    }
+
     getItems().forEach(function (li) {
       li.draggable = true;
       $$('a', li).forEach(function (a) { a.draggable = false; });
@@ -3424,6 +3439,7 @@ html.bgm-idx-dragging * {
         }
         dragLi = li;
         dragOriginal = getItems().slice();
+        removeSubjectDragFrame();
         if (e.dataTransfer) {
           e.dataTransfer.effectAllowed = 'move';
           try { e.dataTransfer.setData('text/plain', li.id); } catch (err) {}
@@ -3436,6 +3452,7 @@ html.bgm-idx-dragging * {
       }, { signal: ac.signal });
       li.addEventListener('dragend', function () {
         li.classList.remove('is-subj-dragging');
+        removeSubjectDragFrame();
         getItems().forEach(function (el) {
           el.classList.remove('is-subj-over', 'is-subj-over-after');
         });
@@ -3444,12 +3461,9 @@ html.bgm-idx-dragging * {
         if (!dragLi || dragLi === li) return;
         e.preventDefault();
         getItems().forEach(function (el) {
-          if (el !== li) el.classList.remove('is-subj-over', 'is-subj-over-after');
+          el.classList.remove('is-subj-over', 'is-subj-over-after');
         });
-        var r = li.getBoundingClientRect();
-        var after = e.clientY > r.top + r.height / 2;
-        li.classList.toggle('is-subj-over', !after);
-        li.classList.toggle('is-subj-over-after', after);
+        showSubjectDragFrame(li.getBoundingClientRect());
       }, { signal: ac.signal });
       li.addEventListener('dragleave', function () {
         li.classList.remove('is-subj-over', 'is-subj-over-after');
@@ -3460,6 +3474,7 @@ html.bgm-idx-dragging * {
         var r = li.getBoundingClientRect();
         var after = e.clientY > r.top + r.height / 2;
         li.classList.remove('is-subj-over', 'is-subj-over-after');
+        removeSubjectDragFrame();
         list.insertBefore(dragLi, after ? li.nextSibling : li);
         var ordered = getItems();
         var original = dragOriginal;
