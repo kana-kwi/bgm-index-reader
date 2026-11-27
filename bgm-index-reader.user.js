@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.56
+// @version      0.1.57
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -27,6 +27,21 @@
 // @match        https://chii.in/music/list/*
 // @match        https://chii.in/game/list/*
 // @match        https://chii.in/real/list/*
+// @match        https://bgm.tv/anime/browser*
+// @match        https://bgm.tv/book/browser*
+// @match        https://bgm.tv/music/browser*
+// @match        https://bgm.tv/game/browser*
+// @match        https://bgm.tv/real/browser*
+// @match        https://bangumi.tv/anime/browser*
+// @match        https://bangumi.tv/book/browser*
+// @match        https://bangumi.tv/music/browser*
+// @match        https://bangumi.tv/game/browser*
+// @match        https://bangumi.tv/real/browser*
+// @match        https://chii.in/anime/browser*
+// @match        https://chii.in/book/browser*
+// @match        https://chii.in/music/browser*
+// @match        https://chii.in/game/browser*
+// @match        https://chii.in/real/browser*
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -38,7 +53,8 @@
   var isUserIndexPage = /^\/user\/[^/]+\/index(?:\/collect)?\/?$/.test(location.pathname);
   var isSubjectPage = /^\/subject\/\d+\/?$/.test(location.pathname);
   var isCollectionPage = /^\/(anime|book|music|game|real)\/list\/[^/]+(?:\/[a-z_]+)?\/?$/.test(location.pathname);
-  if (!isDetailPage && !isUserIndexPage && !isSubjectPage && !isCollectionPage) return;
+  var isBrowserPage = /^\/(anime|book|music|game|real)\/browser(?:\/|$)/.test(location.pathname);
+  if (!isDetailPage && !isUserIndexPage && !isSubjectPage && !isCollectionPage && !isBrowserPage) return;
   if (window.__BGM_IDX_READER__) return;
   window.__BGM_IDX_READER__ = true;
 
@@ -1565,9 +1581,42 @@ html.bgm-idx-dragging * {
   color: var(--idx-accent);
   border-color: var(--idx-accent);
 }
-#browserItemList.bgm-idx-on > li.item.is-star-picked {
-  outline: 2px solid var(--idx-accent);
-  outline-offset: 2px;
+#browserItemList.bgm-idx-on.is-star-batch > li.item .bgm-idx-card-star {
+  opacity: 1;
+}
+#browserItemList.bgm-idx-on > li.item.is-star-picked .bgm-idx-card-star {
+  background: var(--idx-accent);
+  color: #fff;
+  border-color: var(--idx-accent);
+}
+#browserItemList li.bgm-idx-browser-item {
+  position: relative;
+}
+li.bgm-idx-browser-item .bgm-idx-card-star {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 9;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--idx-border);
+  border-radius: 999px;
+  background: var(--idx-surface-1);
+  color: var(--idx-text-3);
+  font-size: 15px;
+  line-height: 22px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--idx-dur-fast) var(--idx-ease);
+}
+li.bgm-idx-browser-item:hover .bgm-idx-card-star {
+  opacity: 1;
+}
+li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
+  color: var(--idx-accent);
+  border-color: var(--idx-accent);
 }
 .bgm-idx-star-bar {
   display: flex;
@@ -6672,6 +6721,27 @@ function addToIndex(indexId) {
         }
         var selected = new Set();
         var loading = false;
+        var syncedIndex = loadUserIndexFolders();
+        var dirFolders = (syncedIndex.folders || []).filter(function (f) { return f && f.id && f.name; });
+        var dirAssign = syncedIndex.assign || {};
+        var collapsed = new Set();
+        try {
+          var prefs = loadCloudPrefs() || {};
+          var savedCollapsed = prefs.starCollapsed;
+          if (!Array.isArray(savedCollapsed)) {
+            savedCollapsed = JSON.parse(localStorage.getItem('bgm-index-reader:star-collapsed:v1') || '[]');
+          }
+          if (Array.isArray(savedCollapsed)) collapsed = new Set(savedCollapsed);
+        } catch (e) {}
+        function persistCollapsed() {
+          var arr = Array.from(collapsed);
+          try {
+            localStorage.setItem('bgm-index-reader:star-collapsed:v1', JSON.stringify(arr));
+          } catch (e) {}
+          try {
+            saveCloudPrefs({ starCollapsed: arr });
+          } catch (e) {}
+        }
         var dialog = document.createElement('div');
         dialog.className = 'bgm-idx-star-mask';
         dialog.innerHTML = '<div class="bgm-idx-star-panel" role="dialog" aria-label="收录到目录">' +
@@ -6718,7 +6788,10 @@ function addToIndex(indexId) {
             footer();
             return;
           }
-          vs.forEach(function (d) {
+          function folderOf(d) {
+            return dirAssign[d.id] || '';
+          }
+          function makeRow(d) {
             var row = document.createElement('button');
             row.type = 'button';
             row.className = 'bgm-idx-star-item';
@@ -6744,8 +6817,59 @@ function addToIndex(indexId) {
                 render();
               });
             }
-            list.appendChild(row);
-          });
+            return row;
+          }
+          function renderGroup(groupName, groupId, groupItems, collapsible) {
+            if (!groupItems.length) return;
+            var group = document.createElement('div');
+            group.className = 'bgm-idx-star-group';
+            var head = document.createElement('button');
+            head.type = 'button';
+            head.className = 'bgm-idx-star-group-head';
+            if (collapsible && collapsed.has(groupId)) head.classList.add('is-collapsed');
+            var caret = document.createElement('span');
+            caret.className = 'bgm-idx-star-caret';
+            caret.textContent = collapsible ? (collapsed.has(groupId) ? '▸' : '▾') : '';
+            var label = document.createElement('span');
+            label.className = 'bgm-idx-star-group-name';
+            label.textContent = groupName;
+            var count = document.createElement('span');
+            count.className = 'bgm-idx-star-group-count';
+            count.textContent = groupItems.length;
+            head.appendChild(caret);
+            head.appendChild(label);
+            head.appendChild(count);
+            if (collapsible) {
+              head.addEventListener('click', function () {
+                if (collapsed.has(groupId)) collapsed.delete(groupId);
+                else collapsed.add(groupId);
+                persistCollapsed();
+                render();
+              });
+            } else {
+              head.disabled = true;
+            }
+            group.appendChild(head);
+            if (!collapsible || !collapsed.has(groupId)) {
+              groupItems.forEach(function (d) {
+                group.appendChild(makeRow(d));
+              });
+            }
+            list.appendChild(group);
+          }
+          if (dirFolders.length) {
+            dirFolders.forEach(function (f) {
+              renderGroup(f.name, f.id, vs.filter(function (d) { return folderOf(d) === f.id; }), true);
+            });
+            var loose = vs.filter(function (d) {
+              return !dirFolders.some(function (f) { return f.id === folderOf(d); });
+            });
+            renderGroup('未归档', '__loose__', loose, true);
+          } else {
+            vs.forEach(function (d) {
+              list.appendChild(makeRow(d));
+            });
+          }
           footer();
         }
         function close() {
@@ -6820,6 +6944,77 @@ function addToIndex(indexId) {
       .catch(function () {
         starToast('目录加载失败，请确认已登录');
       });
+  }
+
+  function bootBrowserStars() {
+    var list = document.getElementById('browserItemList');
+    if (!list) return;
+    var username = currentUsername();
+    if (!username) return;
+    var items = Array.prototype.slice.call(list.querySelectorAll(':scope > li.item'));
+    if (!items.length) return;
+    injectStyle();
+    var queue = [];
+    var active = 0;
+    function pump() {
+      while (active < 3 && queue.length) {
+        var fn = queue.shift();
+        active++;
+        Promise.resolve().then(fn).then(finish, finish);
+      }
+    }
+    function finish() {
+      active--;
+      pump();
+    }
+    function enqueue(fn) {
+      queue.push(fn);
+      pump();
+    }
+    function subjectIdOf(li) {
+      var m = /^item_(\d+)/.exec(li.id || '');
+      if (m) return m[1];
+      var a = li.querySelector('a[href*="/subject/"]');
+      var n = a ? /\/subject\/(\d+)/.exec(a.getAttribute('href') || '') : null;
+      return n ? n[1] : '';
+    }
+    function refresh(li, id) {
+      enqueue(function () {
+        return starSubjectState(username, id).then(function (state) {
+          var b = li.querySelector('.bgm-idx-card-star');
+          if (!b) return;
+          b.textContent = state.done ? '★' : '☆';
+          b.classList.toggle('is-done', !!state.done);
+        }).catch(function () {});
+      });
+    }
+    items.forEach(function (li) {
+      if (li.querySelector('.bgm-idx-card-star')) return;
+      var id = subjectIdOf(li);
+      if (!id) return;
+      li.classList.add('bgm-idx-browser-item');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'bgm-idx-card-star';
+      b.title = '收录到我的目录';
+      b.textContent = '☆';
+      b.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openStarPicker([id], function () {
+          refresh(li, id);
+        });
+      }, { signal: ac.signal });
+      li.appendChild(b);
+      refresh(li, id);
+    });
+    window.__BGM_IDX_READER_DESTROY__ = function () {
+      Array.prototype.forEach.call(list.querySelectorAll('.bgm-idx-card-star'), function (b) { b.remove(); });
+      var style = document.getElementById('bgm-idx-style');
+      if (style) style.remove();
+      delete window.__BGM_IDX_READER__;
+      delete window.__BGM_IDX_READER_DESTROY__;
+    };
   }
 
   function boot() {
@@ -6974,6 +7169,7 @@ function addToIndex(indexId) {
         refreshStar(li);
       }
       function updateBar() {
+        list.classList.toggle('is-star-batch', starBatch);
         if (note) note.textContent = '批量收录 · 已选 ' + starPicked.size;
         if (pickBtn) pickBtn.disabled = !starPicked.size;
         getItems().forEach(function (li) {
@@ -7179,11 +7375,13 @@ if (isCollectionPage) {
     document.addEventListener('DOMContentLoaded', function () {
       if (isUserIndexPage) bootUserIndex();
       else if (isSubjectPage) bootSubject();
+      else if (isBrowserPage) bootBrowserStars();
       else boot();
     }, { once: true });
   } else {
     if (isUserIndexPage) bootUserIndex();
     else if (isSubjectPage) bootSubject();
+    else if (isBrowserPage) bootBrowserStars();
     else boot();
   }
 })();
