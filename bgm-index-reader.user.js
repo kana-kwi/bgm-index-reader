@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.57
+// @version      0.1.58
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1277,6 +1277,88 @@ html.bgm-idx-dragging * {
 }
 .browserCrtList.bgm-idx-crt-on > div[id^="item_character"][hidden] {
   display: none !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] {
+  display: grid !important;
+  grid-template-columns: 96px minmax(0, 1fr) !important;
+  height: 124px !important;
+  padding: 0 !important;
+  border: 1px solid var(--idx-border) !important;
+  border-radius: var(--idx-radius-md, 10px) !important;
+  background: var(--idx-surface-1) !important;
+  overflow: hidden !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] > a.avatar {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 96px !important;
+  height: 124px !important;
+  display: block !important;
+  margin: 0 !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] > a.avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  background: var(--idx-surface-2) !important;
+  border-radius: 0 !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] > div.bgm-idx-crt-name {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  position: static !important;
+  opacity: 1 !important;
+  transform: none !important;
+  padding: 10px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  background: transparent !important;
+  pointer-events: auto !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] > div h3 {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] > div h3 a.l {
+  color: var(--idx-text-1) !important;
+  text-shadow: none !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] > div .prsn_info {
+  display: block !important;
+  font-size: 12px !important;
+  color: var(--idx-text-3) !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] > div .prsn_info .tip {
+  color: inherit !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] .bgm-idx-crt-acts {
+  top: auto !important;
+  bottom: 8px !important;
+  right: 8px !important;
+}
+@media (max-width: 720px) {
+  #columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory {
+    grid-template-columns: 1fr !important;
+  }
+  #columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] {
+    height: 110px !important;
+    grid-template-columns: 86px minmax(0, 1fr) !important;
+  }
+  #columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory > div[id^="item_character"] > a.avatar {
+    width: 86px !important;
+    height: 110px !important;
+  }
 }
 #browserItemList.bgm-idx-on > li.bgm-idx-type-sep {
   grid-column: 1 / -1;
@@ -7023,6 +7105,7 @@ function addToIndex(indexId) {
     if (!list) {
       var crtList = $('.browserCrtList');
       if (crtList) {
+        if (isDetailPage) crtList.classList.add('bgm-idx-crt-directory');
         bootCharacters(crtList);
         return;
       }
@@ -7270,7 +7353,10 @@ function addToIndex(indexId) {
       });
     }
     var crtSection = $('.browserCrtList');
-    if (crtSection) bootCharacters(crtSection, true);
+    if (crtSection) {
+      if (isDetailPage) crtSection.classList.add('bgm-idx-crt-directory');
+      bootCharacters(crtSection, true);
+    }
 if (isCollectionPage) {
       collectionSiteSize = getItems().length || 24;
       loadCollectionBulk();
