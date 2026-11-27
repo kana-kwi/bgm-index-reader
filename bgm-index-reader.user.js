@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.51
+// @version      0.1.52
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -4227,9 +4227,11 @@ html.bgm-idx-dragging * {
     Array.prototype.forEach.call(form.elements, function (el) {
       if (!el.name || el.disabled) return;
       if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
-      if (el.name === 'modify_order' || el.name === 'modify_content') return;
+      if (el.name === 'modify_order' || el.name === 'modify_content' || el.name === 'order' || el.name === 'content') return;
       data.append(el.name, el.value);
     });
+    data.set('order', String(payload.order));
+    data.set('content', payload.content || '');
     data.set('modify_order', String(payload.order));
     data.set('modify_content', payload.content || '');
     return window.fetch('/index/related/' + encodeURIComponent(payload.rlt) + '/modify', {
