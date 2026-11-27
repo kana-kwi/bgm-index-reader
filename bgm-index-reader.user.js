@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.49
+// @version      0.1.50
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -3716,7 +3716,7 @@ html.bgm-idx-dragging * {
         </label>
         <button type="button" id="bgm-idx-staff" class="bgm-idx-btn" aria-pressed="false">制作信息</button>
         <button type="button" id="bgm-idx-focus" class="bgm-idx-btn" aria-pressed="false" title="专注（快捷键 ~）">专注</button>
-        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>批量排序</button>
+
       </div>
       <div class="bgm-idx-row bgm-idx-row-sub">
         <label class="bgm-idx-field">
@@ -3749,6 +3749,7 @@ html.bgm-idx-dragging * {
             <option value="relaxed">舒适</option>
           </select>
         </label>
+        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>批量排序</button>
         <label id="bgm-idx-cover-size-wrap" class="bgm-idx-field" hidden>
           <span>大小</span>
           <select id="bgm-idx-cover-size" aria-label="封面大小">

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.49
+// @version      0.1.50
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -64,7 +64,7 @@
         </label>
         <button type="button" id="bgm-idx-staff" class="bgm-idx-btn" aria-pressed="false">\u5236\u4F5C\u4FE1\u606F</button>
         <button type="button" id="bgm-idx-focus" class="bgm-idx-btn" aria-pressed="false" title="\u4E13\u6CE8\uFF08\u5FEB\u6377\u952E ~\uFF09">\u4E13\u6CE8</button>
-        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>\u6279\u91CF\u6392\u5E8F</button>
+
       </div>
       <div class="bgm-idx-row bgm-idx-row-sub">
         <label class="bgm-idx-field">
@@ -97,6 +97,7 @@
             <option value="relaxed">\u8212\u9002</option>
           </select>
         </label>
+        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>\u6279\u91CF\u6392\u5E8F</button>
         <label id="bgm-idx-cover-size-wrap" class="bgm-idx-field" hidden>
           <span>\u5927\u5C0F</span>
           <select id="bgm-idx-cover-size" aria-label="\u5C01\u9762\u5927\u5C0F">
