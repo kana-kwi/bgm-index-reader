@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.45
+// @version      0.1.46
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1481,6 +1481,20 @@ html.bgm-idx-dragging * {
   color: var(--idx-text-3);
   font-size: 12px;
   line-height: 1.5;
+}
+#timeline.index-list li.index-item.is-multi {
+  cursor: pointer;
+}
+#timeline.index-list li.index-item.is-multi a.l {
+  pointer-events: none;
+}
+#timeline.index-list li.index-item.is-multi-selected {
+  border-color: var(--idx-accent) !important;
+  background: color-mix(in srgb, var(--idx-accent) 8%, var(--idx-surface-1)) !important;
+}
+.bgm-idx-btn.is-danger {
+  color: #c94b4b;
+  border-color: color-mix(in srgb, #c94b4b 45%, var(--idx-border));
 }
 .bgm-idx-ui-select {
   position: absolute;
@@ -4279,6 +4293,8 @@ html.bgm-idx-dragging * {
     var lastCloudSnapshot = JSON.stringify({ folders: folders, assign: assign });
     var activeFolder = null;
     var selecting = false;
+    var multi = false;
+    var deleting = false;
     var selected = new Set();
 
     items.forEach(function (li, i) {
@@ -4302,6 +4318,16 @@ html.bgm-idx-dragging * {
         openFolderMenu(li, fileBtn);
       }, { signal: ac.signal });
       li.appendChild(fileBtn);
+      li.addEventListener('click', function (e) {
+        if (!multi) return;
+        if (closest(e.target, '.bgm-idx-ui-select')) return;
+        if (closest(e.target, '.bgm-idx-ui-file-btn')) return;
+        if (closest(e.target, 'a')) e.preventDefault();
+        var pickId = dirIdOf(li);
+        if (selected.has(pickId)) selected.delete(pickId);
+        else selected.add(pickId);
+        renderUserIndex();
+      }, { signal: ac.signal });
     });
 
     var toolbar = document.createElement('div');
@@ -4315,6 +4341,7 @@ html.bgm-idx-dragging * {
         </label>
 
         <button type="button" id="bgm-idx-ui-new-folder" class="bgm-idx-btn">新建文件夹</button>
+        <button type="button" id="bgm-idx-ui-multi" class="bgm-idx-btn">多选</button>
         <div id="bgm-idx-ui-stats" class="bgm-idx-stats" aria-live="polite"></div>
       </div>
     `;
@@ -4495,6 +4522,169 @@ html.bgm-idx-dragging * {
       renderUserIndex();
     }
 
+    function enterMulti() {
+      multi = true;
+      selecting = false;
+      selected.clear();
+      renderUserIndex();
+    }
+
+    function exitMulti() {
+      multi = false;
+      selected.clear();
+      renderUserIndex();
+    }
+
+    function selectedItems() {
+      return items.filter(function (li) {
+        return selected.has(dirIdOf(li));
+      });
+    }
+
+    function bulkArchiveSelected(targetId) {
+      if (!selected.size) return;
+      selected.forEach(function (id) {
+        if (targetId) assign[id] = targetId;
+        else delete assign[id];
+      });
+      saveUserIndexState();
+      exitMulti();
+    }
+
+    function createFolderForSelected() {
+      if (!selected.size) return;
+      var name = window.prompt('文件夹名称（例如：季度追番表）', '');
+      if (!name || !name.trim()) return;
+      var desc = window.prompt('文件夹介绍（可留空）', '');
+      if (desc === null) desc = '';
+      var folder = { id: 'f' + Date.now(), name: name.trim(), desc: String(desc).trim() };
+      folders.push(folder);
+      selected.forEach(function (id) {
+        assign[id] = folder.id;
+      });
+      saveUserIndexState();
+      exitMulti();
+    }
+
+    function openBulkFolderMenu(btn) {
+      closeFolderMenu();
+      var menu = document.createElement('div');
+      menu.className = 'bgm-idx-ui-menu';
+      folders.forEach(function (f) {
+        if (activeFolder === f.id) return;
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = f.name;
+        b.addEventListener('click', function () {
+          bulkArchiveSelected(f.id);
+          closeFolderMenu();
+        }, { signal: ac.signal });
+        menu.appendChild(b);
+      });
+      if (activeFolder) {
+        var none = document.createElement('button');
+        none.type = 'button';
+        none.textContent = '未归档';
+        none.addEventListener('click', function () {
+          bulkArchiveSelected(null);
+          closeFolderMenu();
+        }, { signal: ac.signal });
+        menu.appendChild(none);
+      }
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'bgm-idx-ui-menu-new';
+      add.textContent = '新建文件夹…';
+      add.addEventListener('click', function () {
+        closeFolderMenu();
+        createFolderForSelected();
+      }, { signal: ac.signal });
+      menu.appendChild(add);
+      document.body.appendChild(menu);
+      var r = btn.getBoundingClientRect();
+      menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 220)) + 'px';
+      menu.style.top = Math.max(8, r.bottom + 4) + 'px';
+      openMenu = menu;
+    }
+
+    async function deleteSiteIndex(id) {
+      var page = await fetch('/index/' + id, { credentials: 'same-origin' });
+      if (!page.ok) throw new Error('读取目录页失败（' + page.status + '）');
+      var html = await page.text();
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var form = doc.querySelector('#eraseIndex form') ||
+        doc.querySelector('form[action*="/erase"]') ||
+        doc.querySelector('form[action*="eraseIndex"]');
+      if (!form) throw new Error('未找到删除表单');
+      var action = form.getAttribute('action') || ('/index/' + id);
+      var method = (form.getAttribute('method') || 'POST').toUpperCase();
+      var data = new FormData();
+      Array.prototype.forEach.call(form.elements, function (el) {
+        if (!el.name || el.disabled) return;
+        if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
+        data.append(el.name, el.value);
+      });
+      var url = new URL(action, location.origin);
+      var opts = { credentials: 'same-origin', method: method };
+      if (method === 'GET') {
+        data.forEach(function (v, k) {
+          url.searchParams.append(k, v);
+        });
+      } else {
+        opts.body = data;
+      }
+      var res = await fetch(url.href, opts);
+      if (!res.ok) throw new Error('删除请求失败（' + res.status + '）');
+    }
+
+    function deleteSelected() {
+      if (!selected.size || deleting) return;
+      var targets = selectedItems();
+      var names = targets.map(function (li) {
+        return '「' + (li.dataset.uiTitle || dirIdOf(li)) + '」';
+      });
+      var lines = names.slice(0, 30).join('\n');
+      if (names.length > 30) lines += '\n…等 ' + names.length + ' 个';
+      var missing = selected.size - targets.length;
+      if (missing > 0) lines += '\n另有 ' + missing + ' 个（当前未显示）';
+      if (!window.confirm('确定删除以下 ' + selected.size + ' 个站点目录？此操作不可恢复，删除后文件夹中的记录也会消失：\n\n' + lines)) return;
+      runDelete(targets);
+    }
+
+    async function runDelete(targets) {
+      deleting = true;
+      var done = [];
+      var failed = [];
+      for (var i = 0; i < targets.length; i++) {
+        var li = targets[i];
+        var id = dirIdOf(li);
+        if (stats) stats.textContent = '正在删除 ' + (i + 1) + ' / ' + targets.length + '…';
+        try {
+          await deleteSiteIndex(id);
+          done.push(id);
+          delete assign[id];
+          li.remove();
+        } catch (err) {
+          failed.push({ title: li.dataset.uiTitle || id, message: (err && err.message) || String(err) });
+        }
+      }
+      var doneSet = new Set(done);
+      items = items.filter(function (li) {
+        return !doneSet.has(dirIdOf(li));
+      });
+      deleting = false;
+      saveUserIndexState();
+      exitMulti();
+      renderUserIndex();
+      if (failed.length) {
+        window.alert('已删除 ' + done.length + ' 个，失败 ' + failed.length + ' 个：\n' + failed.map(function (f) {
+          return '「' + f.title + '」' + f.message;
+        }).join('\n'));
+      } else {
+        window.alert('已删除 ' + done.length + ' 个目录。');
+      }
+    }
+
     function ensureSelectBox(li) {
       var box = li.querySelector('.bgm-idx-ui-select');
       if (!box) {
@@ -4542,6 +4732,10 @@ html.bgm-idx-dragging * {
         card.appendChild(head);
         card.appendChild(desc);
         card.addEventListener('click', function () {
+          if (multi) {
+            multi = false;
+            selected.clear();
+          }
           openFolder(folder.id);
         }, { signal: ac.signal });
         folderArea.appendChild(card);
@@ -4557,7 +4751,37 @@ html.bgm-idx-dragging * {
       var actions = document.createElement('span');
       actions.className = 'bgm-idx-ui-section-actions';
       var folder = active ? folderById(active) : null;
-      if (selecting && folder) {
+      if (multi) {
+        title.textContent = (folder ? '多选「' + folder.name + '」' : '多选未归档') + ' · 已选 ' + selected.size;
+        var pickAll = makeBtn('全选');
+        pickAll.disabled = !visible.length;
+        pickAll.addEventListener('click', function () {
+          visible.forEach(function (li) {
+            selected.add(dirIdOf(li));
+          });
+          renderUserIndex();
+        }, { signal: ac.signal });
+        var archive = makeBtn('归档（' + selected.size + '）', true);
+        archive.disabled = !selected.size;
+        archive.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openBulkFolderMenu(archive);
+        }, { signal: ac.signal });
+        var remove = makeBtn('删除（' + selected.size + '）');
+        remove.className = 'bgm-idx-btn is-danger';
+        remove.disabled = !selected.size || deleting;
+        remove.addEventListener('click', function () {
+          deleteSelected();
+        }, { signal: ac.signal });
+        var cancelMulti = makeBtn('取消');
+        cancelMulti.addEventListener('click', function () {
+          exitMulti();
+        }, { signal: ac.signal });
+        actions.appendChild(pickAll);
+        actions.appendChild(archive);
+        actions.appendChild(remove);
+        actions.appendChild(cancelMulti);
+      } else if (selecting && folder) {
         title.textContent = '选择目录加入「' + folder.name + '」 · 已选 ' + selected.size;
         var all = makeBtn('全选');
         all.addEventListener('click', function () {
@@ -4600,12 +4824,18 @@ html.bgm-idx-dragging * {
         }, { signal: ac.signal });
         var back = makeBtn('返回未归档');
         back.addEventListener('click', function () {
-          activeFolder = null;
-          selecting = false;
-          selected.clear();
+activeFolder = null;
+      selecting = false;
+      multi = false;
+      deleting = false;
+      selected.clear();
           renderUserIndex();
         }, { signal: ac.signal });
+        var pickFolder = makeBtn('多选');
+        pickFolder.disabled = !visible.length;
+        pickFolder.addEventListener('click', enterMulti, { signal: ac.signal });
         actions.appendChild(batch);
+        actions.appendChild(pickFolder);
         actions.appendChild(edit);
         actions.appendChild(del);
         actions.appendChild(back);
@@ -4615,12 +4845,16 @@ html.bgm-idx-dragging * {
         create.addEventListener('click', function () {
           createFolder(null);
         }, { signal: ac.signal });
+        var pickLoose = makeBtn('多选');
+        pickLoose.disabled = !visible.length;
+        pickLoose.addEventListener('click', enterMulti, { signal: ac.signal });
         actions.appendChild(create);
+        actions.appendChild(pickLoose);
       }
       row.appendChild(title);
       row.appendChild(actions);
       sectionHead.appendChild(row);
-      if (folder && folder.desc && !selecting) {
+      if (folder && folder.desc && !selecting && !multi) {
         var desc = document.createElement('div');
         desc.className = 'bgm-idx-ui-section-desc';
         desc.textContent = folder.desc;
@@ -4662,10 +4896,14 @@ html.bgm-idx-dragging * {
       items.forEach(function (li) {
         li.hidden = !visSet.has(li);
         var box = ensureSelectBox(li);
-        box.hidden = !(selecting && active && !folderIdOf(li));
-        box.checked = selected.has(dirIdOf(li));
+        var itemId = dirIdOf(li);
+        var picked = selected.has(itemId);
+        box.hidden = !(visSet.has(li) && (multi || (selecting && active && !folderIdOf(li))));
+        box.checked = picked;
+        li.classList.toggle('is-multi', multi);
+        li.classList.toggle('is-multi-selected', multi && picked);
         var fileBtn = li.querySelector('.bgm-idx-ui-file-btn');
-        if (fileBtn) fileBtn.hidden = !!selecting;
+        if (fileBtn) fileBtn.hidden = !!selecting || multi;
       });
       buildFolderCards();
       buildSectionHead(visible, active);
@@ -4689,6 +4927,10 @@ html.bgm-idx-dragging * {
         createFolder(null);
       }, { signal: ac.signal });
     }
+    var multiBtn = $('#bgm-idx-ui-multi', toolbar);
+    if (multiBtn) {
+      multiBtn.addEventListener('click', enterMulti, { signal: ac.signal });
+    }
     document.addEventListener('click', function (e) {
       if (!openMenu) return;
       if (openMenu.contains(e.target)) return;
@@ -4697,6 +4939,10 @@ html.bgm-idx-dragging * {
     }, { signal: ac.signal });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
+        if (multi) {
+          exitMulti();
+          return;
+        }
         if (selecting) {
           selecting = false;
           selected.clear();
