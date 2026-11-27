@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.59
+// @version      0.1.60
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1346,6 +1346,28 @@ html.bgm-idx-dragging * {
   top: auto !important;
   bottom: 8px !important;
   right: 8px !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory[data-bgm-crt-density="compact"] {
+  gap: 8px !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory[data-bgm-crt-density="compact"] > div[id^="item_character"] {
+  height: 112px !important;
+  grid-template-columns: 88px minmax(0, 1fr) !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory[data-bgm-crt-density="compact"] > div[id^="item_character"] > a.avatar {
+  width: 88px !important;
+  height: 112px !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory[data-bgm-crt-density="relaxed"] {
+  gap: 12px !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory[data-bgm-crt-density="relaxed"] > div[id^="item_character"] {
+  height: 132px !important;
+  grid-template-columns: 104px minmax(0, 1fr) !important;
+}
+#columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory[data-bgm-crt-density="relaxed"] > div[id^="item_character"] > a.avatar {
+  width: 104px !important;
+  height: 132px !important;
 }
 @media (max-width: 720px) {
   #columnSubjectBrowserA .browserCrtList.bgm-idx-crt-on.bgm-idx-crt-directory {
@@ -4779,11 +4801,10 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
           <input id="bgm-idx-crt-q" type="search" placeholder="搜索角色…" autocomplete="off">
         </label>
         <label class="bgm-idx-field">
-          <span>大小</span>
-          <select id="bgm-idx-crt-size" aria-label="角色立绘大小">
-            <option value="small">小</option>
-            <option value="medium" selected>中</option>
-            <option value="large">大</option>
+          <span>密度</span>
+          <select id="bgm-idx-crt-density" aria-label="角色卡片密度">
+            <option value="compact">紧凑</option>
+            <option value="relaxed">舒适</option>
           </select>
         </label>
         <button type="button" id="bgm-idx-crt-focus" class="bgm-idx-btn" aria-pressed="false" title="专注（快捷键 ~）">专注</button>
@@ -4792,8 +4813,8 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
     `;
     if (crt && crt.parentNode) crt.parentNode.insertBefore(crtToolbar, crt);
     var search = $('#bgm-idx-crt-q', crtToolbar);
-    var size = $('#bgm-idx-crt-size', crtToolbar);
-    if (size) size.value = crt.dataset.bgmCrtSize || 'medium';
+    var density = $('#bgm-idx-crt-density', crtToolbar);
+    if (density) density.value = crt.dataset.bgmCrtDensity || 'compact';
     var stats = $('#bgm-idx-crt-stats', crtToolbar);
     crtFocusBtn = $('#bgm-idx-crt-focus', crtToolbar);
     if (crtFocusBtn) {
@@ -4822,11 +4843,11 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
     if (search) {
       search.addEventListener('input', render, { signal: charAc.signal });
     }
-    if (size) {
-      size.addEventListener('change', function () {
-        crt.dataset.bgmCrtSize = size.value;
-        try { localStorage.setItem('bgm-index-reader:crt-size:v1', size.value); } catch (e) {}
-        saveCloudPrefs({ crtSize: size.value });
+    if (density) {
+      density.addEventListener('change', function () {
+        crt.dataset.bgmCrtDensity = density.value;
+        try { localStorage.setItem('bgm-index-reader:crt-density:v1', density.value); } catch (e) {}
+        saveCloudPrefs({ crtDensity: density.value });
       }, { signal: charAc.signal });
     }
     render();
@@ -4840,17 +4861,24 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
     document.documentElement.classList.add('bgm-idx-ready');
     injectStyle();
     crt.classList.add('bgm-idx-crt-on');
+    if (isDetailPage) crt.classList.add('bgm-idx-crt-directory');
     var crtPrefs = loadCloudPrefs() || {};
-    var savedCrtSize = crtPrefs.crtSize || '';
-    if (!savedCrtSize) {
-      try { savedCrtSize = localStorage.getItem('bgm-index-reader:crt-size:v1') || 'medium'; } catch (e) { savedCrtSize = 'medium'; }
+    var savedCrtDensity = crtPrefs.crtDensity || '';
+    if (!savedCrtDensity) {
+      try { savedCrtDensity = localStorage.getItem('bgm-index-reader:crt-density:v1') || ''; } catch (e) {}
     }
-    if (!/^(small|medium|large)$/.test(savedCrtSize)) savedCrtSize = 'medium';
-    if (!crtPrefs.crtSize) {
-      try { localStorage.setItem('bgm-index-reader:crt-size:v1', savedCrtSize); } catch (e) {}
-      saveCloudPrefs({ crtSize: savedCrtSize });
+    if (!/^(compact|relaxed)$/.test(savedCrtDensity)) {
+      var savedCrtSize = crtPrefs.crtSize || '';
+      if (!savedCrtSize) {
+        try { savedCrtSize = localStorage.getItem('bgm-index-reader:crt-size:v1') || 'medium'; } catch (e) { savedCrtSize = 'medium'; }
+      }
+      savedCrtDensity = savedCrtSize === 'large' ? 'relaxed' : 'compact';
     }
-    crt.dataset.bgmCrtSize = savedCrtSize;
+    if (!crtPrefs.crtDensity) {
+      try { localStorage.setItem('bgm-index-reader:crt-density:v1', savedCrtDensity); } catch (e) {}
+      saveCloudPrefs({ crtDensity: savedCrtDensity });
+    }
+    crt.dataset.bgmCrtDensity = savedCrtDensity;
     var items = Array.prototype.slice.call(crt.children).filter(function (el) {
       return el.id && /^item_character\d+$/.test(el.id);
     });
@@ -4934,8 +4962,9 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
       if (style) style.remove();
     }
     if (crtList) {
-      crtList.classList.remove('bgm-idx-crt-on');
+      crtList.classList.remove('bgm-idx-crt-on', 'bgm-idx-crt-directory');
       crtList.removeAttribute('data-bgm-crt-size');
+      crtList.removeAttribute('data-bgm-crt-density');
       $$('.bgm-idx-crt-item', crtList).forEach(function (item) {
         item.hidden = false;
         item.classList.remove('bgm-idx-crt-item');
