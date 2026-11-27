@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.60
+// @version      0.1.61
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1099,6 +1099,12 @@ html.bgm-idx-focus #browserItemList.bgm-idx-on[data-bgm-view="grid"] {
 .browserCrtList.bgm-idx-crt-on[data-bgm-crt-size="large"] {
   --idx-crt-size: 180px;
 }
+.browserCrtList.bgm-idx-crt-on[data-bgm-crt-density="compact"] {
+  --idx-crt-size: 140px;
+}
+.browserCrtList.bgm-idx-crt-on[data-bgm-crt-density="relaxed"] {
+  --idx-crt-size: 180px;
+}
 .browserCrtList.bgm-idx-crt-on > div[id^="item_character"] {
   position: relative !important;
   display: block !important;
@@ -1698,8 +1704,8 @@ html.bgm-idx-dragging * {
 }
 li.bgm-idx-browser-item .bgm-idx-card-star {
   position: absolute;
-  right: 10px;
-  bottom: 34px;
+  right: 8px;
+  bottom: 8px;
   z-index: 9;
   width: 30px;
   height: 30px;
@@ -1725,19 +1731,30 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
 .bgm-idx-person-list {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 10px !important;
+  gap: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
+  background: var(--idx-surface-1) !important;
+  border: 1px solid var(--idx-border) !important;
+  border-radius: var(--idx-radius-md, 10px);
+  overflow: hidden;
 }
 .bgm-idx-person-list > div[id^="item_person"] {
   display: grid !important;
   grid-template-columns: 96px minmax(0, 1fr) !important;
   height: 124px !important;
   padding: 0 !important;
-  border: 1px solid var(--idx-border) !important;
-  border-radius: var(--idx-radius-md, 10px) !important;
-  background: var(--idx-surface-1) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--idx-border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
   overflow: hidden !important;
+}
+.bgm-idx-person-list > div[id^="item_person"]:nth-child(odd) {
+  border-right: 1px solid var(--idx-border) !important;
+}
+.bgm-idx-person-list > div[id^="item_person"]:hover {
+  background: var(--idx-surface-3) !important;
 }
 .bgm-idx-person-list > div[id^="item_person"] > .rr {
   display: none !important;
@@ -1793,6 +1810,7 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
   .bgm-idx-person-list > div[id^="item_person"] {
     height: 110px !important;
     grid-template-columns: 86px minmax(0, 1fr) !important;
+    border-right: 0 !important;
   }
   .bgm-idx-person-list > div[id^="item_person"] > a.avatar {
     width: 86px !important;
@@ -4861,7 +4879,7 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
     document.documentElement.classList.add('bgm-idx-ready');
     injectStyle();
     crt.classList.add('bgm-idx-crt-on');
-    if (isDetailPage) crt.classList.add('bgm-idx-crt-directory');
+
     var crtPrefs = loadCloudPrefs() || {};
     var savedCrtDensity = crtPrefs.crtDensity || '';
     if (!savedCrtDensity) {
@@ -7153,6 +7171,7 @@ function addToIndex(indexId) {
     var items = Array.prototype.slice.call(list.querySelectorAll(':scope > li.item'));
     if (!items.length) return;
     injectStyle();
+    document.documentElement.classList.add('bgm-idx-ready');
     var queue = [];
     var active = 0;
     function pump() {
@@ -7211,6 +7230,7 @@ function addToIndex(indexId) {
       Array.prototype.forEach.call(list.querySelectorAll('.bgm-idx-card-star'), function (b) { b.remove(); });
       var style = document.getElementById('bgm-idx-style');
       if (style) style.remove();
+      document.documentElement.classList.remove('bgm-idx-ready');
       delete window.__BGM_IDX_READER__;
       delete window.__BGM_IDX_READER_DESTROY__;
     };
