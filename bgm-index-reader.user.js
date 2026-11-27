@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.50
+// @version      0.1.51
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -3306,6 +3306,8 @@ html.bgm-idx-dragging * {
       window.alert('仅目录作者可排序');
       return;
     }
+    componentMutation = true;
+    applySubjectOrder(ordered);
     var changes = [];
     ordered.forEach(function (li, i) {
       var rlt = subjectSortRlt(li);
@@ -3315,8 +3317,8 @@ html.bgm-idx-dragging * {
       changes.push({ li: li, rlt: rlt, order: i + 1, oldOrder: old, content: subjectSortContent(li) });
     });
     if (!changes.length) {
-      applySubjectOrder(ordered);
       exitSubjectSort();
+      applyState();
       return;
     }
     subjectSortSaving = true;
