@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.46
+// @version      0.1.47
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1496,6 +1496,85 @@ html.bgm-idx-dragging * {
   color: #c94b4b;
   border-color: color-mix(in srgb, #c94b4b 45%, var(--idx-border));
 }
+.bgm-idx-subject-sortbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 0;
+  flex-wrap: wrap;
+}
+.bgm-idx-subject-sortbar[hidden] {
+  display: none !important;
+}
+.bgm-idx-subject-sortbar #bgm-idx-subject-sort-note {
+  color: var(--idx-text-3);
+  font-size: 12px;
+}
+#browserItemList.bgm-idx-on > li.item {
+  position: relative;
+}
+#browserItemList.bgm-idx-on > li.item.is-subj-pick {
+  cursor: pointer;
+}
+#browserItemList.bgm-idx-on > li.item.is-subj-pick a.l {
+  pointer-events: none;
+}
+.bgm-idx-subj-pick {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 8;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--idx-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+#browserItemList.bgm-idx-on > li.item.is-subj-dragging {
+  opacity: .45;
+}
+#browserItemList.bgm-idx-on > li.item.is-subj-over {
+  box-shadow: inset 0 2px 0 var(--idx-accent) !important;
+}
+#browserItemList.bgm-idx-on > li.item.is-subj-over-after {
+  box-shadow: inset 0 -2px 0 var(--idx-accent) !important;
+}
+#timeline.index-list li.index-item.is-dir-dragging {
+  opacity: .45;
+}
+#timeline.index-list li.index-item.is-dir-over {
+  box-shadow: inset 0 2px 0 var(--idx-accent) !important;
+}
+#timeline.index-list li.index-item.is-dir-over-after {
+  box-shadow: inset 0 -2px 0 var(--idx-accent) !important;
+}
+#timeline.index-list li.index-item.is-sort-pick {
+  cursor: pointer;
+}
+#timeline.index-list li.index-item.is-sort-pick a.l {
+  pointer-events: none;
+}
+.bgm-idx-ui-pick {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 7;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--idx-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
 .bgm-idx-ui-select {
   position: absolute;
   right: 8px;
@@ -1770,6 +1849,10 @@ html.bgm-idx-dragging * {
   var toolbar = null;
   var owner = '';
   var isOtherDirectory = false;
+  var subjectSortPick = false;
+  var subjectSortPicked = [];
+  var subjectSortOriginal = [];
+  var subjectSortSaving = false;
   var collectionStatus = '';
   var collectionState = '';
   var collectionAllLoaded = false;
@@ -3095,6 +3178,263 @@ html.bgm-idx-dragging * {
     if (!scoreAvailable && state.score !== 'all') state.score = 'all';
   }
 
+  function subjectSortAllowed() {
+    if (isCollectionPage || isOtherDirectory) return false;
+    if (!document.getElementById('ModifyRelatedForm')) return false;
+    return true;
+  }
+
+  function subjectSortReady() {
+    if (!subjectSortAllowed()) return false;
+    if (state.sort !== 'default' || String(state.q || '').trim()) return false;
+    if (state.state !== 'all' || state.score !== 'all') return false;
+    if (state.pageSize !== 0) return false;
+    return true;
+  }
+
+  function subjectSortHint() {
+    if (!subjectSortAllowed()) return '仅目录作者可排序';
+    return '请先切回“原顺序”、清除搜索/状态/评分筛选，并把每页设为“全部”';
+  }
+
+  function subjectSortRlt(li) {
+    return li.getAttribute('attr-index-related');
+  }
+
+  function subjectSortContent(li) {
+    var t = li.querySelector('.text');
+    return t ? t.textContent.trim() : '';
+  }
+
+  function subjectSortOrder(li) {
+    var a = li.querySelector('p.tools a[order]');
+    if (a) {
+      var n = parseInt(a.getAttribute('order'), 10);
+      if (isFinite(n)) return n;
+    }
+    var d = parseInt(li.dataset.bgmOrder, 10);
+    return isFinite(d) ? d : null;
+  }
+
+  function subjectSortCleanup() {
+    getItems().forEach(function (li) {
+      li.classList.remove('is-subj-pick');
+      delete li.dataset.bgmPick;
+      var b = li.querySelector('.bgm-idx-subj-pick');
+      if (b) b.remove();
+    });
+  }
+
+  function updateSubjectSortUI() {
+    var bar = document.getElementById('bgm-idx-subject-sortbar');
+    var note = document.getElementById('bgm-idx-subject-sort-note');
+    var save = document.getElementById('bgm-idx-subject-sort-save');
+    if (bar) bar.hidden = !subjectSortPick;
+    if (note) note.textContent = '批量排序 · 已点 ' + subjectSortPicked.length + ' / ' + getItems().length;
+    if (save) save.disabled = subjectSortPicked.length < 2 || subjectSortSaving;
+    getItems().forEach(function (li) {
+      var at = subjectSortPicked.indexOf(li);
+      li.classList.toggle('is-subj-pick', subjectSortPick);
+      var b = li.querySelector('.bgm-idx-subj-pick');
+      if (at >= 0) {
+        if (!b) {
+          b = document.createElement('span');
+          b.className = 'bgm-idx-subj-pick';
+          li.appendChild(b);
+        }
+        b.textContent = String(at + 1);
+        li.dataset.bgmPick = String(at + 1);
+      } else {
+        if (b) b.remove();
+        delete li.dataset.bgmPick;
+      }
+    });
+  }
+
+  function enterSubjectSort() {
+    if (!subjectSortReady()) {
+      window.alert(subjectSortHint());
+      return;
+    }
+    subjectSortPick = true;
+    subjectSortPicked = [];
+    subjectSortOriginal = getItems().slice();
+    updateSubjectSortUI();
+  }
+
+  function exitSubjectSort() {
+    subjectSortPick = false;
+    subjectSortPicked = [];
+    subjectSortOriginal = [];
+    subjectSortCleanup();
+    updateSubjectSortUI();
+  }
+
+  function applySubjectOrder(ordered) {
+    var frag = document.createDocumentFragment();
+    ordered.forEach(function (li) {
+      frag.appendChild(li);
+    });
+    list.appendChild(frag);
+    ordered.forEach(function (li, i) {
+      li.dataset.bgmIndex = String(i);
+    });
+  }
+
+  function saveSubjectOrder(ordered, original) {
+    if (subjectSortSaving) return;
+    var form = document.getElementById('ModifyRelatedForm');
+    if (!form) {
+      window.alert('仅目录作者可排序');
+      return;
+    }
+    var changes = [];
+    ordered.forEach(function (li, i) {
+      var rlt = subjectSortRlt(li);
+      if (!rlt) return;
+      var old = subjectSortOrder(li);
+      if (old === i + 1) return;
+      changes.push({ li: li, rlt: rlt, order: i + 1, oldOrder: old, content: subjectSortContent(li) });
+    });
+    if (!changes.length) {
+      applySubjectOrder(ordered);
+      exitSubjectSort();
+      return;
+    }
+    subjectSortSaving = true;
+    updateSubjectSortUI();
+    var applied = [];
+    function restore() {
+      subjectSortSaving = false;
+      original.forEach(function (li, i) {
+        li.dataset.bgmIndex = String(i);
+      });
+      applySubjectOrder(original);
+      exitSubjectSort();
+      applyState();
+      window.alert('排序保存失败，已恢复原顺序');
+    }
+    function rollback() {
+      var pending = applied.slice().reverse();
+      (function nextRollback() {
+        var c = pending.shift();
+        if (!c) {
+          restore();
+          return;
+        }
+        if (c.oldOrder == null) {
+          nextRollback();
+          return;
+        }
+        postRelatedModify(form, { rlt: c.rlt, order: c.oldOrder, content: c.content }).then(nextRollback, nextRollback);
+      })();
+    }
+    function nextSave() {
+      if (applied.length >= changes.length) {
+        subjectSortSaving = false;
+        applySubjectOrder(ordered);
+        exitSubjectSort();
+        applyState();
+        return;
+      }
+      var c = changes[applied.length];
+      postRelatedModify(form, c).then(function () {
+        applied.push(c);
+        c.li.dataset.bgmOrder = String(c.order);
+        var link = c.li.querySelector('p.tools a[order]');
+        if (link) link.setAttribute('order', String(c.order));
+        updateSubjectSortUI();
+        nextSave();
+      }, rollback);
+    }
+    nextSave();
+  }
+
+  function bindSubjectSort() {
+    var button = document.getElementById('bgm-idx-subject-sort');
+    if (!button) return;
+    button.hidden = !subjectSortAllowed();
+    if (!subjectSortAllowed()) return;
+    button.addEventListener('click', enterSubjectSort, { signal: ac.signal });
+    var save = document.getElementById('bgm-idx-subject-sort-save');
+    if (save) save.addEventListener('click', function () {
+      var rest = getItems().filter(function (li) {
+        return subjectSortPicked.indexOf(li) < 0;
+      });
+      var ordered = subjectSortPicked.concat(rest);
+      saveSubjectOrder(ordered, subjectSortOriginal);
+    }, { signal: ac.signal });
+    var reset = document.getElementById('bgm-idx-subject-sort-reset');
+    if (reset) reset.addEventListener('click', function () {
+      subjectSortPicked = [];
+      updateSubjectSortUI();
+    }, { signal: ac.signal });
+    var cancel = document.getElementById('bgm-idx-subject-sort-cancel');
+    if (cancel) cancel.addEventListener('click', exitSubjectSort, { signal: ac.signal });
+    list.addEventListener('click', function (e) {
+      if (!subjectSortPick) return;
+      var li = closest(e.target, 'li.item');
+      if (!li || !list.contains(li) || li.classList.contains('bgm-idx-group')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var at = subjectSortPicked.indexOf(li);
+      if (at >= 0) subjectSortPicked.splice(at, 1);
+      else subjectSortPicked.push(li);
+      updateSubjectSortUI();
+    }, true);
+    var dragLi = null;
+    var dragOriginal = null;
+    getItems().forEach(function (li) {
+      li.draggable = true;
+      $$('a', li).forEach(function (a) { a.draggable = false; });
+      li.addEventListener('dragstart', function (e) {
+        if (subjectSortPick) {
+          e.preventDefault();
+          return;
+        }
+        if (!subjectSortReady()) {
+          e.preventDefault();
+          window.alert(subjectSortHint());
+          return;
+        }
+        dragLi = li;
+        dragOriginal = getItems().slice();
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          try { e.dataTransfer.setData('text/plain', li.id); } catch (err) {}
+        }
+        li.classList.add('is-subj-dragging');
+      }, { signal: ac.signal });
+      li.addEventListener('dragend', function () {
+        li.classList.remove('is-subj-dragging');
+        getItems().forEach(function (el) {
+          el.classList.remove('is-subj-over', 'is-subj-over-after');
+        });
+      }, { signal: ac.signal });
+      li.addEventListener('dragover', function (e) {
+        if (!dragLi || dragLi === li) return;
+        e.preventDefault();
+        var r = li.getBoundingClientRect();
+        var after = e.clientY > r.top + r.height / 2;
+        li.classList.toggle('is-subj-over', !after);
+        li.classList.toggle('is-subj-over-after', after);
+      }, { signal: ac.signal });
+      li.addEventListener('drop', function (e) {
+        if (!dragLi || dragLi === li) return;
+        e.preventDefault();
+        var r = li.getBoundingClientRect();
+        var after = e.clientY > r.top + r.height / 2;
+        li.classList.remove('is-subj-over', 'is-subj-over-after');
+        list.insertBefore(dragLi, after ? li.nextSibling : li);
+        var ordered = getItems();
+        var original = dragOriginal;
+        dragLi = null;
+        dragOriginal = null;
+        saveSubjectOrder(ordered, original);
+      }, { signal: ac.signal });
+    });
+  }
+
   function applyState() {
     componentMutation = true;
     list.setAttribute('data-bgm-view', state.view);
@@ -3348,6 +3688,7 @@ html.bgm-idx-dragging * {
         </label>
         <button type="button" id="bgm-idx-staff" class="bgm-idx-btn" aria-pressed="false">制作信息</button>
         <button type="button" id="bgm-idx-focus" class="bgm-idx-btn" aria-pressed="false" title="专注（快捷键 ~）">专注</button>
+        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>批量排序</button>
       </div>
       <div class="bgm-idx-row bgm-idx-row-sub">
         <label class="bgm-idx-field">
@@ -3390,6 +3731,12 @@ html.bgm-idx-dragging * {
         </label>
         <div id="bgm-idx-chips" class="bgm-idx-chips" aria-live="polite" hidden></div>
         <div id="bgm-idx-stats" class="bgm-idx-stats" aria-live="polite"></div>
+        <div id="bgm-idx-subject-sortbar" class="bgm-idx-subject-sortbar" hidden>
+          <span id="bgm-idx-subject-sort-note"></span>
+          <button type="button" id="bgm-idx-subject-sort-save" class="bgm-idx-btn is-primary">保存顺序</button>
+          <button type="button" id="bgm-idx-subject-sort-reset" class="bgm-idx-btn">重来</button>
+          <button type="button" id="bgm-idx-subject-sort-cancel" class="bgm-idx-btn">取消</button>
+        </div>
       </div>
     `;
     var bar = $(SEL.toolsBar);
@@ -4295,6 +4642,10 @@ html.bgm-idx-dragging * {
     var selecting = false;
     var multi = false;
     var deleting = false;
+    var sortPick = false;
+    var sortPicked = [];
+    var dragDirId = '';
+    var dirOrder = Array.isArray(saved.dirOrder) ? saved.dirOrder.slice() : [];
     var selected = new Set();
 
     items.forEach(function (li, i) {
@@ -4318,7 +4669,60 @@ html.bgm-idx-dragging * {
         openFolderMenu(li, fileBtn);
       }, { signal: ac.signal });
       li.appendChild(fileBtn);
+      li.draggable = true;
+      $$('a', li).forEach(function (a) { a.draggable = false; });
+      li.addEventListener('dragstart', function (e) {
+        if (multi || selecting || sortPick) {
+          e.preventDefault();
+          return;
+        }
+        dragDirId = dirIdOf(li);
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', dragDirId); } catch (err) {}
+        li.classList.add('is-dir-dragging');
+      }, { signal: ac.signal });
+      li.addEventListener('dragend', function () {
+        li.classList.remove('is-dir-dragging');
+        dragDirId = '';
+        items.forEach(function (el) { el.classList.remove('is-dir-over', 'is-dir-over-after'); });
+      }, { signal: ac.signal });
+      li.addEventListener('dragover', function (e) {
+        if (!dragDirId) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        var rect = li.getBoundingClientRect();
+        var after = e.clientY > rect.top + rect.height / 2;
+        li.classList.toggle('is-dir-over', true);
+        li.classList.toggle('is-dir-over-after', after);
+      }, { signal: ac.signal });
+      li.addEventListener('dragleave', function () {
+        li.classList.remove('is-dir-over', 'is-dir-over-after');
+      }, { signal: ac.signal });
+      li.addEventListener('drop', function (e) {
+        if (!dragDirId) return;
+        e.preventDefault();
+        var moving = null;
+        items.forEach(function (el) {
+          if (dirIdOf(el) === dragDirId) moving = el;
+        });
+        if (!moving || moving === li) return;
+        var rect = li.getBoundingClientRect();
+        var after = e.clientY > rect.top + rect.height / 2;
+        li.classList.remove('is-dir-over', 'is-dir-over-after');
+        list.insertBefore(moving, after ? li.nextSibling : li);
+        syncDirOrderFromDom();
+      }, { signal: ac.signal });
       li.addEventListener('click', function (e) {
+        if (sortPick) {
+          e.preventDefault();
+          if (closest(e.target, '.bgm-idx-ui-file-btn')) return;
+          var sortId = dirIdOf(li);
+          var at = sortPicked.indexOf(sortId);
+          if (at >= 0) sortPicked.splice(at, 1);
+          else sortPicked.push(sortId);
+          renderUserIndex();
+          return;
+        }
         if (!multi) return;
         if (closest(e.target, '.bgm-idx-ui-select')) return;
         if (closest(e.target, '.bgm-idx-ui-file-btn')) return;
@@ -4342,6 +4746,7 @@ html.bgm-idx-dragging * {
 
         <button type="button" id="bgm-idx-ui-new-folder" class="bgm-idx-btn">新建文件夹</button>
         <button type="button" id="bgm-idx-ui-multi" class="bgm-idx-btn">多选</button>
+        <button type="button" id="bgm-idx-ui-sort" class="bgm-idx-btn">批量排序</button>
         <div id="bgm-idx-ui-stats" class="bgm-idx-stats" aria-live="polite"></div>
       </div>
     `;
@@ -4363,7 +4768,7 @@ html.bgm-idx-dragging * {
 
     function saveUserIndexState() {
       try {
-        localStorage.setItem(UI_KEY, JSON.stringify({ q: q, archive: archiveOn, folders: folders, assign: assign }));
+        localStorage.setItem(UI_KEY, JSON.stringify({ q: q, archive: archiveOn, folders: folders, assign: assign, dirOrder: dirOrder }));
       } catch (e) {}
       var snap = JSON.stringify({ folders: folders, assign: assign });
       if (snap !== lastCloudSnapshot) {
@@ -4519,6 +4924,23 @@ html.bgm-idx-dragging * {
       saveUserIndexState();
       selecting = false;
       selected.clear();
+      renderUserIndex();
+    }
+
+    function enterSortPick() {
+      sortPick = true;
+      multi = false;
+      selecting = false;
+      selected.clear();
+      sortPicked = [];
+      renderUserIndex();
+    }
+
+    function syncDirOrderFromDom() {
+      dirOrder = Array.prototype.slice.call(list.children).filter(function (el) {
+        return el.classList && el.classList.contains('index-item');
+      }).map(dirIdOf);
+      saveUserIndexState();
       renderUserIndex();
     }
 
@@ -4751,7 +5173,35 @@ html.bgm-idx-dragging * {
       var actions = document.createElement('span');
       actions.className = 'bgm-idx-ui-section-actions';
       var folder = active ? folderById(active) : null;
-      if (multi) {
+      if (sortPick) {
+        title.textContent = '批量排序 · 已点 ' + sortPicked.length;
+        var saveSort = makeBtn('保存顺序', true);
+        saveSort.disabled = sortPicked.length < 2;
+        saveSort.addEventListener('click', function () {
+          var rest = items.filter(function (li) {
+            return sortPicked.indexOf(dirIdOf(li)) < 0;
+          }).map(dirIdOf);
+          dirOrder = sortPicked.concat(rest);
+          sortPick = false;
+          sortPicked = [];
+          saveUserIndexState();
+          renderUserIndex();
+        }, { signal: ac.signal });
+        var resetSort = makeBtn('重来');
+        resetSort.addEventListener('click', function () {
+          sortPicked = [];
+          renderUserIndex();
+        }, { signal: ac.signal });
+        var cancelSort = makeBtn('取消');
+        cancelSort.addEventListener('click', function () {
+          sortPick = false;
+          sortPicked = [];
+          renderUserIndex();
+        }, { signal: ac.signal });
+        actions.appendChild(saveSort);
+        actions.appendChild(resetSort);
+        actions.appendChild(cancelSort);
+      } else if (multi) {
         title.textContent = (folder ? '多选「' + folder.name + '」' : '多选未归档') + ' · 已选 ' + selected.size;
         var pickAll = makeBtn('全选');
         pickAll.disabled = !visible.length;
@@ -4828,6 +5278,10 @@ activeFolder = null;
       selecting = false;
       multi = false;
       deleting = false;
+      sortPick = false;
+      sortPicked = [];
+      dirOrder = [];
+      dragDirId = '';
       selected.clear();
           renderUserIndex();
         }, { signal: ac.signal });
@@ -4892,6 +5346,14 @@ activeFolder = null;
         source = looseItems();
       }
       var visible = source.filter(matches);
+      visible.sort(function (a, b) {
+        var ai = dirOrder.indexOf(dirIdOf(a));
+        var bi = dirOrder.indexOf(dirIdOf(b));
+        if (ai < 0 && bi < 0) return 0;
+        if (ai < 0) return 1;
+        if (bi < 0) return -1;
+        return ai - bi;
+      });
       var visSet = new Set(visible);
       items.forEach(function (li) {
         li.hidden = !visSet.has(li);
@@ -4902,9 +5364,25 @@ activeFolder = null;
         box.checked = picked;
         li.classList.toggle('is-multi', multi);
         li.classList.toggle('is-multi-selected', multi && picked);
+        li.classList.toggle('is-sort-pick', sortPick);
+        var badge = li.querySelector('.bgm-idx-ui-pick');
+        var pickAt = sortPick ? sortPicked.indexOf(itemId) : -1;
+        if (pickAt >= 0) {
+          if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'bgm-idx-ui-pick';
+            li.appendChild(badge);
+          }
+          badge.textContent = String(pickAt + 1);
+        } else if (badge) {
+          badge.remove();
+        }
         var fileBtn = li.querySelector('.bgm-idx-ui-file-btn');
-        if (fileBtn) fileBtn.hidden = !!selecting || multi;
+        if (fileBtn) fileBtn.hidden = !!selecting || multi || sortPick;
       });
+      var frag = document.createDocumentFragment();
+      visible.forEach(function (li) { frag.appendChild(li); });
+      list.appendChild(frag);
       buildFolderCards();
       buildSectionHead(visible, active);
       if (stats) {
@@ -4931,6 +5409,10 @@ activeFolder = null;
     if (multiBtn) {
       multiBtn.addEventListener('click', enterMulti, { signal: ac.signal });
     }
+    var sortBtn = $('#bgm-idx-ui-sort', toolbar);
+    if (sortBtn) {
+      sortBtn.addEventListener('click', enterSortPick, { signal: ac.signal });
+    }
     document.addEventListener('click', function (e) {
       if (!openMenu) return;
       if (openMenu.contains(e.target)) return;
@@ -4939,6 +5421,12 @@ activeFolder = null;
     }, { signal: ac.signal });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
+        if (sortPick) {
+          sortPick = false;
+          sortPicked = [];
+          renderUserIndex();
+          return;
+        }
         if (multi) {
           exitMulti();
           return;
@@ -6024,6 +6512,7 @@ function addToIndex(indexId) {
     fadeCovers(list);
     applyState();
     bind();
+    bindSubjectSort();
 
     if (window.MutationObserver) {
       observer = new MutationObserver(function (records) {
