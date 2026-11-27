@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.55
+// @version      0.1.56
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1538,6 +1538,60 @@ html.bgm-idx-dragging * {
 #browserItemList.bgm-idx-on > li.item.is-subj-dragging {
   opacity: .45;
 }
+#browserItemList.bgm-idx-on > li.item .bgm-idx-card-star {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 9;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--idx-border);
+  border-radius: 999px;
+  background: var(--idx-surface-1);
+  color: var(--idx-text-3);
+  font-size: 15px;
+  line-height: 22px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--idx-dur-fast) var(--idx-ease);
+}
+#browserItemList.bgm-idx-on > li.item:hover .bgm-idx-card-star,
+#browserItemList.bgm-idx-on > li.item:focus-within .bgm-idx-card-star {
+  opacity: 1;
+}
+#browserItemList.bgm-idx-on > li.item .bgm-idx-card-star.is-done {
+  color: var(--idx-accent);
+  border-color: var(--idx-accent);
+}
+#browserItemList.bgm-idx-on > li.item.is-star-picked {
+  outline: 2px solid var(--idx-accent);
+  outline-offset: 2px;
+}
+.bgm-idx-star-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  flex-wrap: wrap;
+}
+.bgm-idx-star-bar[hidden] {
+  display: none !important;
+}
+.bgm-idx-star-bar #bgm-idx-star-bar-note {
+  color: var(--idx-text-3);
+  font-size: 12px;
+}
+.bgm-idx-star-item:disabled {
+  opacity: .55;
+  cursor: default;
+}
+@media (hover: none) {
+  #browserItemList.bgm-idx-on > li.item .bgm-idx-card-star {
+    opacity: 1;
+  }
+}
 
 #timeline.index-list li.index-item.is-dir-dragging {
   opacity: .45;
@@ -1636,6 +1690,21 @@ html.bgm-idx-dragging * {
   z-index: 900;
   margin: 0;
   box-shadow: var(--idx-shadow-2);
+}
+#bgm-idx-star-btn {
+  opacity: .45;
+  transition: opacity var(--idx-dur-fast) var(--idx-ease);
+}
+#panelInterestWrapper:hover #bgm-idx-star-btn,
+#bgm-idx-star-btn:hover,
+#bgm-idx-star-btn:focus-visible {
+  opacity: 1;
+}
+#bgm-idx-star-btn.is-float {
+  opacity: 1;
+}
+#bgm-idx-star-btn.is-done svg {
+  fill: currentColor;
 }
 .bgm-idx-star-mask {
   position: fixed;
@@ -3764,14 +3833,14 @@ html.bgm-idx-dragging * {
             <option value="none">无评分</option>
           </select>
         </label>
-        <label id="bgm-idx-density-wrap" class="bgm-idx-field">
+<label id="bgm-idx-density-wrap" class="bgm-idx-field">
           <span>密度</span>
           <select id="bgm-idx-density" aria-label="显示密度">
             <option value="compact">紧凑</option>
             <option value="relaxed">舒适</option>
           </select>
         </label>
-        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>批量排序</button>
+        <button type="button" id="bgm-idx-batch-star" class="bgm-idx-btn" hidden>☆ 批量收录</button>
         <label id="bgm-idx-cover-size-wrap" class="bgm-idx-field" hidden>
           <span>大小</span>
           <select id="bgm-idx-cover-size" aria-label="封面大小">
@@ -3796,6 +3865,14 @@ html.bgm-idx-dragging * {
     } else if (list && list.parentNode) {
       list.parentNode.insertBefore(toolbar, list);
     }
+    var starBar = document.createElement('div');
+    starBar.id = 'bgm-idx-star-bar';
+    starBar.className = 'bgm-idx-star-bar';
+    starBar.hidden = true;
+    starBar.innerHTML = '<span id="bgm-idx-star-bar-note"></span>' +
+      '<button type="button" id="bgm-idx-star-bar-pick" class="bgm-idx-btn is-primary">选择目录</button>' +
+      '<button type="button" id="bgm-idx-star-bar-cancel" class="bgm-idx-btn">取消</button>';
+    if (toolbar.parentNode) toolbar.parentNode.insertBefore(starBar, toolbar.nextSibling);
     searchInput = $('#bgm-idx-q', toolbar);
     statsEl = $('#bgm-idx-stats', toolbar);
     chipsEl = $('#bgm-idx-chips', toolbar);
@@ -5604,7 +5681,8 @@ activeFolder = null;
     starBtn.id = 'bgm-idx-star-btn';
     starBtn.className = 'bgm-idx-star-btn';
     starBtn.title = '收录到我的目录';
-    starBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.2 1 5.9-5.2-2.7-5.2 2.7 1-5.9-4.3-4.2 5.9-.9z"/></svg><span>收录</span>';
+    starBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.2 1 5.9-5.2-2.7-5.2 2.7 1-5.9-4.3-4.2 5.9-.9z"/></svg>';
+    starBtn.setAttribute('aria-label', '收录到我的目录');
     var anchor = document.getElementById('subject_summary') || document.querySelector('.subject_summary');
     var editLink = null;
     var candidates = document.querySelectorAll('a');
@@ -6511,6 +6589,239 @@ function addToIndex(indexId) {
     return collectionLoadPromise;
   }
 
+  var starDirsCache = { ts: 0, dirs: [] };
+  var starStateCache = {};
+
+  function starToast(text) {
+    var t = document.createElement('div');
+    t.className = 'bgm-idx-star-toast';
+    t.textContent = text || '';
+    document.body.appendChild(t);
+    setTimeout(function () {
+      if (t.parentNode) t.parentNode.removeChild(t);
+    }, 2200);
+  }
+
+  function starLoadDirs(username) {
+    if (starDirsCache.dirs.length && Date.now() - starDirsCache.ts < 5 * 60 * 1000) {
+      return Promise.resolve(starDirsCache.dirs);
+    }
+    return window.fetch('/user/' + encodeURIComponent(username) + '/index', { credentials: 'include' })
+      .then(function (res) { return res.text(); })
+      .then(function (html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var seen = {};
+        var dirs = [];
+        doc.querySelectorAll('li.index-item a.l[href^="/index/"]').forEach(function (a) {
+          var m = /\/index\/(\d+)/.exec(a.getAttribute('href') || '');
+          if (!m || seen[m[1]]) return;
+          seen[m[1]] = 1;
+          var li = a.closest('li');
+          var num = li ? li.querySelector('.stats .num') : null;
+          dirs.push({ id: m[1], title: a.textContent.trim(), count: num ? num.textContent.trim() : '' });
+        });
+        starDirsCache = { ts: Date.now(), dirs: dirs };
+        return dirs;
+      });
+  }
+
+  function starLoadAddable(username, subjectId) {
+    var url = '/user/' + encodeURIComponent(username) + '/index?ajax=1&add_related=' +
+      encodeURIComponent(subjectId) + '&related_cat=0&keepThis=false';
+    return window.fetch(url, { credentials: 'include' })
+      .then(function (res) { return res.text(); })
+      .then(function (html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var map = {};
+        doc.querySelectorAll('a[href*="add_related="]').forEach(function (a) {
+          var href = a.getAttribute('href') || '';
+          var m = /\/index\/(\d+)\/add_related/.exec(href);
+          if (m) map[m[1]] = href;
+        });
+        return map;
+      });
+  }
+
+  function starSubjectState(username, subjectId, force) {
+    var key = username + ':' + subjectId;
+    var cached = starStateCache[key];
+    if (!force && cached && Date.now() - cached.ts < 60 * 1000) return Promise.resolve(cached);
+    return Promise.all([starLoadDirs(username), starLoadAddable(username, subjectId)])
+      .then(function (parts) {
+        var state = { ts: Date.now(), dirs: parts[0], addable: parts[1], done: false };
+        state.done = state.dirs.some(function (d) { return !state.addable[d.id]; });
+        starStateCache[key] = state;
+        return state;
+      });
+  }
+
+  function openStarPicker(subjectIds, onDone) {
+    var username = currentUsername();
+    var ids = [];
+    (subjectIds || []).forEach(function (id) {
+      id = String(id || '');
+      if (/^\d+$/.test(id) && ids.indexOf(id) < 0) ids.push(id);
+    });
+    if (!username || !ids.length) return;
+    Promise.all(ids.map(function (id) { return starSubjectState(username, id); }))
+      .then(function (states) {
+        var dirs = states[0].dirs;
+        if (!dirs.length) {
+          starToast('还没有自己的目录，请先在 Bangumi 创建目录');
+          return;
+        }
+        var selected = new Set();
+        var loading = false;
+        var dialog = document.createElement('div');
+        dialog.className = 'bgm-idx-star-mask';
+        dialog.innerHTML = '<div class="bgm-idx-star-panel" role="dialog" aria-label="收录到目录">' +
+          '<div class="bgm-idx-star-head"><span>收录到目录（' + ids.length + ' 个条目）</span>' +
+          '<button type="button" class="bgm-idx-star-close" aria-label="关闭">×</button></div>' +
+          '<input class="bgm-idx-star-search" type="search" placeholder="搜索目录名称…" autocomplete="off">' +
+          '<div class="bgm-idx-star-list"></div>' +
+          '<div class="bgm-idx-star-foot"><span class="bgm-idx-star-selected">已选 0</span>' +
+          '<span class="bgm-idx-star-foot-actions"><button type="button" class="bgm-idx-star-mini">全选</button>' +
+          '<button type="button" class="bgm-idx-star-submit" disabled>收录</button></span></div>' +
+          '<div class="bgm-idx-star-msg" aria-live="polite"></div></div>';
+        document.body.appendChild(dialog);
+        var list = dialog.querySelector('.bgm-idx-star-list');
+        var search = dialog.querySelector('.bgm-idx-star-search');
+        var submit = dialog.querySelector('.bgm-idx-star-submit');
+        var all = dialog.querySelector('.bgm-idx-star-mini');
+        var selectedLabel = dialog.querySelector('.bgm-idx-star-selected');
+        var msg = dialog.querySelector('.bgm-idx-star-msg');
+        var q = '';
+        function usable(d) {
+          for (var i = 0; i < ids.length; i++) {
+            if (states[i].addable[d.id]) return true;
+          }
+          return false;
+        }
+        function visibleDirs() {
+          return dirs.filter(function (d) {
+            return !q || normalizeSearch(d.title).indexOf(q) >= 0;
+          });
+        }
+        function footer() {
+          selectedLabel.textContent = '已选 ' + selected.size;
+          submit.disabled = loading || !selected.size;
+          submit.textContent = selected.size ? '收录（' + selected.size + '）' : '收录';
+          var vs = visibleDirs();
+          var allSelected = vs.length > 0 && vs.every(function (d) { return !usable(d) || selected.has(d.id); });
+          all.textContent = allSelected ? '清空' : '全选';
+        }
+        function render() {
+          list.innerHTML = '';
+          var vs = visibleDirs();
+          if (!vs.length) {
+            list.innerHTML = '<div class="bgm-idx-star-tip">没有匹配的目录</div>';
+            footer();
+            return;
+          }
+          vs.forEach(function (d) {
+            var row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'bgm-idx-star-item';
+            if (selected.has(d.id)) row.classList.add('is-selected');
+            var check = document.createElement('span');
+            check.className = 'bgm-idx-star-check';
+            var name = document.createElement('span');
+            name.className = 'bgm-idx-star-item-name';
+            name.textContent = d.title;
+            var count = document.createElement('span');
+            count.className = 'bgm-idx-star-item-count';
+            count.textContent = d.count ? d.count + ' 个' : '';
+            row.appendChild(check);
+            row.appendChild(name);
+            row.appendChild(count);
+            if (!usable(d)) {
+              row.disabled = true;
+              count.textContent = '已收录';
+            } else {
+              row.addEventListener('click', function () {
+                if (selected.has(d.id)) selected.delete(d.id);
+                else selected.add(d.id);
+                render();
+              });
+            }
+            list.appendChild(row);
+          });
+          footer();
+        }
+        function close() {
+          if (dialog && dialog.parentNode) dialog.parentNode.removeChild(dialog);
+          dialog = null;
+          document.removeEventListener('keydown', onKey);
+        }
+        function onKey(e) {
+          if (e.key === 'Escape') close();
+        }
+        function submitSelected() {
+          if (loading || !selected.size) return;
+          var pairs = [];
+          ids.forEach(function (id, i) {
+            selected.forEach(function (dirId) {
+              var href = states[i].addable[dirId];
+              if (href) pairs.push({ subjectId: id, href: href });
+            });
+          });
+          if (!pairs.length) {
+            msg.textContent = '所选目录里都已包含这些条目';
+            return;
+          }
+          loading = true;
+          footer();
+          msg.textContent = '正在收录…';
+          var ok = 0;
+          var fail = 0;
+          (function next() {
+            if (!pairs.length) {
+              loading = false;
+              footer();
+              ids.forEach(function (id) { delete starStateCache[username + ':' + id]; });
+              if (ok) {
+                msg.textContent = fail ? '成功 ' + ok + ' 个，失败 ' + fail + ' 个' : '已收录 ' + ok + ' 项';
+                if (typeof onDone === 'function') onDone();
+                if (!fail) setTimeout(close, 900);
+              } else {
+                msg.textContent = '收录失败，请稍后重试';
+              }
+              return;
+            }
+            var item = pairs.shift();
+            window.fetch(item.href, { credentials: 'include' }).then(function (res) {
+              if (!res.ok || (res.redirected && /\/login/.test(res.url))) throw new Error('failed');
+              ok++;
+              next();
+            }, function () {
+              fail++;
+              next();
+            });
+          })();
+        }
+        search.addEventListener('input', function () {
+          q = normalizeSearch(search.value || '');
+          render();
+        });
+        dialog.querySelector('.bgm-idx-star-close').addEventListener('click', close);
+        dialog.addEventListener('click', function (e) { if (e.target === dialog) close(); });
+        all.addEventListener('click', function () {
+          var vs = visibleDirs();
+          var usableVisible = vs.filter(usable);
+          var allSelected = usableVisible.length > 0 && usableVisible.every(function (d) { return selected.has(d.id); });
+          if (allSelected) usableVisible.forEach(function (d) { selected.delete(d.id); });
+          else usableVisible.forEach(function (d) { selected.add(d.id); });
+          render();
+        });
+        submit.addEventListener('click', submitSelected);
+        document.addEventListener('keydown', onKey);
+        render();
+      })
+      .catch(function () {
+        starToast('目录加载失败，请确认已登录');
+      });
+  }
+
   function boot() {
     if (booted) return;
     list = $(SEL.list);
@@ -6594,9 +6905,136 @@ function addToIndex(indexId) {
     mixedTypes = Object.keys(typeSet).length > 1;
     updateFilterAvailability();
     fadeCovers(list);
+    function setupDirectoryStars() {
+      if (!isOtherDirectory || isCollectionPage) return;
+      var username = currentUsername();
+      if (!username) return;
+      var batchBtn = document.getElementById('bgm-idx-batch-star');
+      var starBar = document.getElementById('bgm-idx-star-bar');
+      var note = document.getElementById('bgm-idx-star-bar-note');
+      var pickBtn = document.getElementById('bgm-idx-star-bar-pick');
+      var cancelBtn = document.getElementById('bgm-idx-star-bar-cancel');
+      if (!batchBtn || !starBar) return;
+      batchBtn.hidden = false;
+      var starBatch = false;
+      var starPicked = new Set();
+      var queue = [];
+      var active = 0;
+      function pump() {
+        while (active < 3 && queue.length) {
+          var fn = queue.shift();
+          active++;
+          Promise.resolve().then(fn).then(finish, finish);
+        }
+      }
+      function finish() {
+        active--;
+        pump();
+      }
+      function enqueue(fn) {
+        queue.push(fn);
+        pump();
+      }
+      function subjectIdOf(li) {
+        return (li.id || '').replace(/^item_/, '');
+      }
+      function setStar(li, isDone) {
+        var b = li.querySelector('.bgm-idx-card-star');
+        if (!b) return;
+        b.textContent = isDone ? '★' : '☆';
+        b.classList.toggle('is-done', !!isDone);
+      }
+      function refreshStar(li, force) {
+        var id = subjectIdOf(li);
+        if (!id) return;
+        enqueue(function () {
+          return starSubjectState(username, id, force).then(function (state) {
+            setStar(li, state.done);
+          }).catch(function () {});
+        });
+      }
+      function ensureStar(li) {
+        if (li.querySelector('.bgm-idx-card-star')) return;
+        var id = subjectIdOf(li);
+        if (!id) return;
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'bgm-idx-card-star';
+        b.title = '收录到我的目录';
+        b.textContent = '☆';
+        b.addEventListener('click', function (e) {
+          if (starBatch) return;
+          e.preventDefault();
+          e.stopPropagation();
+          openStarPicker([id], function () {
+            refreshStar(li, true);
+          });
+        }, { signal: ac.signal });
+        li.appendChild(b);
+        refreshStar(li);
+      }
+      function updateBar() {
+        if (note) note.textContent = '批量收录 · 已选 ' + starPicked.size;
+        if (pickBtn) pickBtn.disabled = !starPicked.size;
+        getItems().forEach(function (li) {
+          li.classList.toggle('is-star-picked', starPicked.has(subjectIdOf(li)));
+        });
+      }
+      function exitBatch() {
+        starBatch = false;
+        starPicked.clear();
+        starBar.hidden = true;
+        batchBtn.textContent = '☆ 批量收录';
+        updateBar();
+      }
+      function enterBatch() {
+        starBatch = true;
+        starPicked.clear();
+        starBar.hidden = false;
+        batchBtn.textContent = '★ 批量收录';
+        updateBar();
+      }
+      batchBtn.addEventListener('click', function () {
+        if (starBatch) exitBatch();
+        else enterBatch();
+      }, { signal: ac.signal });
+      if (pickBtn) pickBtn.addEventListener('click', function () {
+        if (!starPicked.size) return;
+        var ids = Array.from(starPicked);
+        openStarPicker(ids, function () {
+          exitBatch();
+          ids.forEach(function (id) {
+            delete starStateCache[username + ':' + id];
+          });
+          getItems().forEach(function (li) {
+            if (ids.indexOf(subjectIdOf(li)) >= 0) refreshStar(li, true);
+          });
+        });
+      }, { signal: ac.signal });
+      if (cancelBtn) cancelBtn.addEventListener('click', exitBatch, { signal: ac.signal });
+      list.addEventListener('click', function (e) {
+        if (!starBatch) return;
+        var li = closest(e.target, 'li.item');
+        if (!li || li.classList.contains('bgm-idx-group')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var id = subjectIdOf(li);
+        if (!id) return;
+        if (starPicked.has(id)) starPicked.delete(id);
+        else starPicked.add(id);
+        updateBar();
+      }, true);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && starBatch) exitBatch();
+      }, { signal: ac.signal });
+      getItems().forEach(ensureStar);
+      updateBar();
+    }
+
     applyState();
     bind();
     bindSubjectSort();
+    setupDirectoryStars();
 
     if (window.MutationObserver) {
       observer = new MutationObserver(function (records) {
