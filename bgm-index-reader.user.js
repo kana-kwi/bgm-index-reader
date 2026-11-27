@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.53
+// @version      0.1.54
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1547,11 +1547,16 @@ html.bgm-idx-dragging * {
 #timeline.index-list li.index-item.is-dir-dragging {
   opacity: .45;
 }
-#timeline.index-list > ul.is-dir-over-start {
-  box-shadow: inset 0 2px 0 var(--idx-accent) !important;
-}
-#timeline.index-list li.index-item.is-dir-over-after {
-  box-shadow: inset 0 -2px 0 var(--idx-accent) !important;
+.bgm-idx-ui-drop-frame {
+  position: fixed;
+  z-index: 9999;
+  box-sizing: border-box;
+  pointer-events: none;
+  border: 2px dashed var(--idx-accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--idx-accent) 8%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--idx-accent) 22%, transparent);
+  transition: left 80ms var(--idx-ease), top 80ms var(--idx-ease), width 80ms var(--idx-ease), height 80ms var(--idx-ease);
 }
 #timeline.index-list li.index-item.is-sort-pick {
   cursor: pointer;
@@ -4678,6 +4683,7 @@ html.bgm-idx-dragging * {
     var sortPick = false;
     var sortPicked = [];
     var dragDirId = '';
+    var dragFrame = null;
     var dirOrder = Array.isArray(saved.dirOrder) ? saved.dirOrder.slice() : [];
     var selected = new Set();
 
@@ -4723,6 +4729,7 @@ html.bgm-idx-dragging * {
       li.addEventListener('dragend', function () {
         li.classList.remove('is-dir-dragging');
         dragDirId = '';
+        removeDragFrame();
         items.forEach(function (el) { el.classList.remove('is-dir-over', 'is-dir-over-after'); });
         list.classList.remove('is-dir-over-start');
       }, { signal: ac.signal });
@@ -4730,24 +4737,7 @@ html.bgm-idx-dragging * {
         if (!dragDirId) return;
         e.preventDefault();
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        items.forEach(function (el) {
-          el.classList.remove('is-dir-over', 'is-dir-over-after');
-        });
-        list.classList.remove('is-dir-over-start');
-        var rect = li.getBoundingClientRect();
-        var after = e.clientY > rect.top + rect.height / 2;
-        if (after) {
-          li.classList.add('is-dir-over-after');
-        } else {
-          var prev = li.previousElementSibling;
-          while (prev && !prev.classList.contains('index-item')) prev = prev.previousElementSibling;
-          if (prev) prev.classList.add('is-dir-over-after');
-          else list.classList.add('is-dir-over-start');
-        }
-      }, { signal: ac.signal });
-      li.addEventListener('dragleave', function () {
-        items.forEach(function (el) { el.classList.remove('is-dir-over', 'is-dir-over-after'); });
-        list.classList.remove('is-dir-over-start');
+        showDragFrame(li.getBoundingClientRect());
       }, { signal: ac.signal });
       li.addEventListener('drop', function (e) {
         if (!dragDirId) return;
@@ -4759,6 +4749,7 @@ html.bgm-idx-dragging * {
         if (!moving || moving === li) return;
         var rect = li.getBoundingClientRect();
         var after = e.clientY > rect.top + rect.height / 2;
+        removeDragFrame();
         items.forEach(function (el) { el.classList.remove('is-dir-over', 'is-dir-over-after'); });
         list.classList.remove('is-dir-over-start');
         list.insertBefore(moving, after ? li.nextSibling : li);
@@ -4984,6 +4975,24 @@ html.bgm-idx-dragging * {
       selected.clear();
       sortPicked = [];
       renderUserIndex();
+    }
+
+    function removeDragFrame() {
+      if (dragFrame && dragFrame.parentNode) dragFrame.parentNode.removeChild(dragFrame);
+      dragFrame = null;
+    }
+
+    function showDragFrame(rect) {
+      if (!dragFrame) {
+        dragFrame = document.createElement('div');
+        dragFrame.className = 'bgm-idx-ui-drop-frame';
+        dragFrame.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(dragFrame);
+      }
+      dragFrame.style.left = rect.left + 'px';
+      dragFrame.style.top = rect.top + 'px';
+      dragFrame.style.width = rect.width + 'px';
+      dragFrame.style.height = rect.height + 'px';
     }
 
     function syncDirOrderFromDom() {
