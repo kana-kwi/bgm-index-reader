@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.58
+// @version      0.1.59
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1676,18 +1676,18 @@ html.bgm-idx-dragging * {
 }
 li.bgm-idx-browser-item .bgm-idx-card-star {
   position: absolute;
-  right: 8px;
-  top: 8px;
+  right: 10px;
+  bottom: 34px;
   z-index: 9;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: 1px solid var(--idx-border);
   border-radius: 999px;
   background: var(--idx-surface-1);
   color: var(--idx-text-3);
-  font-size: 15px;
-  line-height: 22px;
+  font-size: 18px;
+  line-height: 28px;
   text-align: center;
   cursor: pointer;
   opacity: 0;
@@ -1699,6 +1699,83 @@ li.bgm-idx-browser-item:hover .bgm-idx-card-star {
 li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
   color: var(--idx-accent);
   border-color: var(--idx-accent);
+}
+.bgm-idx-person-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] {
+  display: grid !important;
+  grid-template-columns: 96px minmax(0, 1fr) !important;
+  height: 124px !important;
+  padding: 0 !important;
+  border: 1px solid var(--idx-border) !important;
+  border-radius: var(--idx-radius-md, 10px) !important;
+  background: var(--idx-surface-1) !important;
+  overflow: hidden !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] > .rr {
+  display: none !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] > a.avatar {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 96px !important;
+  height: 124px !important;
+  display: block !important;
+  margin: 0 !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] > a.avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  background: var(--idx-surface-2) !important;
+  border-radius: 0 !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] > div:not(.rr) {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  position: static !important;
+  padding: 10px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  background: transparent !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] h3 {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] h3 a.l {
+  color: var(--idx-text-1) !important;
+  text-shadow: none !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] .prsn_info {
+  display: block !important;
+  font-size: 12px !important;
+  color: var(--idx-text-3) !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] .prsn_info .badge_job {
+  color: var(--idx-accent) !important;
+}
+@media (max-width: 720px) {
+  .bgm-idx-person-list {
+    grid-template-columns: 1fr !important;
+  }
+  .bgm-idx-person-list > div[id^="item_person"] {
+    height: 110px !important;
+    grid-template-columns: 86px minmax(0, 1fr) !important;
+  }
+  .bgm-idx-person-list > div[id^="item_person"] > a.avatar {
+    width: 86px !important;
+    height: 110px !important;
+  }
 }
 .bgm-idx-star-bar {
   display: flex;
@@ -1853,11 +1930,11 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
   gap: 9px;
   width: 380px;
   max-width: 100%;
-  max-height: 70vh;
-  padding: 14px;
+  max-height: min(82vh, 680px);
+  padding: 16px;
   border: 1px solid var(--idx-border);
   border-radius: 12px;
-  background: var(--idx-surface-1);
+  background: var(--idx-surface-1) !important;
   box-shadow: var(--idx-shadow-2);
 }
 .bgm-idx-star-head {
@@ -1892,6 +1969,7 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
   flex-direction: column;
   gap: 4px;
   min-height: 60px;
+  max-height: min(52vh, 420px);
   overflow: auto;
 }
 .bgm-idx-star-item {
@@ -1962,10 +2040,18 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
   border: 1px solid var(--idx-border);
   border-radius: 3px;
   background: var(--idx-surface-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
 }
 .bgm-idx-star-item.is-selected .bgm-idx-star-check {
   border-color: var(--idx-accent);
   background: var(--idx-accent);
+  color: #fff;
 }
 .bgm-idx-star-foot {
   display: flex;
@@ -6880,18 +6966,20 @@ function addToIndex(indexId) {
             if (selected.has(d.id)) row.classList.add('is-selected');
             var check = document.createElement('span');
             check.className = 'bgm-idx-star-check';
+            if (selected.has(d.id)) check.textContent = '✓';
             var name = document.createElement('span');
             name.className = 'bgm-idx-star-item-name';
             name.textContent = d.title;
             var count = document.createElement('span');
             count.className = 'bgm-idx-star-item-count';
-            count.textContent = d.count ? d.count + ' 个' : '';
+            if (!usable(d)) count.textContent = '已收录';
+            else if (selected.has(d.id)) count.textContent = '已选';
+            else count.textContent = d.count ? d.count + ' 个' : '';
             row.appendChild(check);
             row.appendChild(name);
             row.appendChild(count);
             if (!usable(d)) {
               row.disabled = true;
-              count.textContent = '已收录';
             } else {
               row.addEventListener('click', function () {
                 if (selected.has(d.id)) selected.delete(d.id);
@@ -7099,14 +7187,49 @@ function addToIndex(indexId) {
     };
   }
 
+  function markPersonLists() {
+    if (!isDetailPage) return false;
+    var items = $$('div[id^="item_person"]');
+    if (!items.length) return false;
+    var groups = [];
+    items.forEach(function (el) {
+      var parent = el.parentNode;
+      if (!parent || parent.classList.contains('bgm-idx-person-list')) return;
+      var group = null;
+      for (var i = 0; i < groups.length; i++) {
+        if (groups[i].parent === parent) {
+          group = groups[i];
+          break;
+        }
+      }
+      if (!group) {
+        group = { parent: parent, items: [] };
+        groups.push(group);
+      }
+      group.items.push(el);
+    });
+    groups.forEach(function (group) {
+      var wrap = document.createElement('div');
+      wrap.className = 'bgm-idx-person-list';
+      group.parent.insertBefore(wrap, group.items[0]);
+      group.items.forEach(function (el) {
+        wrap.appendChild(el);
+      });
+    });
+    return groups.length > 0;
+  }
+
   function boot() {
     if (booted) return;
     list = $(SEL.list);
     if (!list) {
       var crtList = $('.browserCrtList');
       if (crtList) {
-        if (isDetailPage) crtList.classList.add('bgm-idx-crt-directory');
         bootCharacters(crtList);
+        return;
+      }
+      if (markPersonLists()) {
+        injectStyle();
         return;
       }
       delete window.__BGM_IDX_READER__;
@@ -7353,10 +7476,8 @@ function addToIndex(indexId) {
       });
     }
     var crtSection = $('.browserCrtList');
-    if (crtSection) {
-      if (isDetailPage) crtSection.classList.add('bgm-idx-crt-directory');
-      bootCharacters(crtSection, true);
-    }
+    if (crtSection) bootCharacters(crtSection, true);
+    markPersonLists();
 if (isCollectionPage) {
       collectionSiteSize = getItems().length || 24;
       loadCollectionBulk();
