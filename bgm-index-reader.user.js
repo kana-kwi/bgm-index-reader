@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.52
+// @version      0.1.53
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1547,7 +1547,7 @@ html.bgm-idx-dragging * {
 #timeline.index-list li.index-item.is-dir-dragging {
   opacity: .45;
 }
-#timeline.index-list li.index-item.is-dir-over {
+#timeline.index-list > ul.is-dir-over-start {
   box-shadow: inset 0 2px 0 var(--idx-accent) !important;
 }
 #timeline.index-list li.index-item.is-dir-over-after {
@@ -4724,21 +4724,30 @@ html.bgm-idx-dragging * {
         li.classList.remove('is-dir-dragging');
         dragDirId = '';
         items.forEach(function (el) { el.classList.remove('is-dir-over', 'is-dir-over-after'); });
+        list.classList.remove('is-dir-over-start');
       }, { signal: ac.signal });
       li.addEventListener('dragover', function (e) {
         if (!dragDirId) return;
         e.preventDefault();
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
         items.forEach(function (el) {
-          if (el !== li) el.classList.remove('is-dir-over', 'is-dir-over-after');
+          el.classList.remove('is-dir-over', 'is-dir-over-after');
         });
+        list.classList.remove('is-dir-over-start');
         var rect = li.getBoundingClientRect();
         var after = e.clientY > rect.top + rect.height / 2;
-        li.classList.toggle('is-dir-over', !after);
-        li.classList.toggle('is-dir-over-after', after);
+        if (after) {
+          li.classList.add('is-dir-over-after');
+        } else {
+          var prev = li.previousElementSibling;
+          while (prev && !prev.classList.contains('index-item')) prev = prev.previousElementSibling;
+          if (prev) prev.classList.add('is-dir-over-after');
+          else list.classList.add('is-dir-over-start');
+        }
       }, { signal: ac.signal });
       li.addEventListener('dragleave', function () {
-        li.classList.remove('is-dir-over', 'is-dir-over-after');
+        items.forEach(function (el) { el.classList.remove('is-dir-over', 'is-dir-over-after'); });
+        list.classList.remove('is-dir-over-start');
       }, { signal: ac.signal });
       li.addEventListener('drop', function (e) {
         if (!dragDirId) return;
@@ -4750,7 +4759,8 @@ html.bgm-idx-dragging * {
         if (!moving || moving === li) return;
         var rect = li.getBoundingClientRect();
         var after = e.clientY > rect.top + rect.height / 2;
-        li.classList.remove('is-dir-over', 'is-dir-over-after');
+        items.forEach(function (el) { el.classList.remove('is-dir-over', 'is-dir-over-after'); });
+        list.classList.remove('is-dir-over-start');
         list.insertBefore(moving, after ? li.nextSibling : li);
         syncDirOrderFromDom();
       }, { signal: ac.signal });
