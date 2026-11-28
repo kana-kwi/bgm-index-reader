@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.62
+// @version      0.1.63
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1727,6 +1727,16 @@ li.bgm-idx-browser-item:hover .bgm-idx-card-star {
 li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
   color: var(--idx-accent);
   border-color: var(--idx-accent);
+}
+.browserCrtList.bgm-idx-person-on {
+  display: block !important;
+  grid-template-columns: none !important;
+  gap: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.browserCrtList.bgm-idx-person-on .browserCrtList {
+  display: block !important;
 }
 .bgm-idx-person-list {
   display: grid !important;
@@ -7231,9 +7241,10 @@ function addToIndex(indexId) {
     };
   }
 
-  function markPersonLists() {
+  function markPersonLists(root) {
     if (!isDetailPage) return false;
-    var items = $$('div[id^="item_person"]');
+    var scope = root || document;
+    var items = $$('div[id^="item_person"]', scope);
     if (!items.length) return false;
     var groups = [];
     items.forEach(function (el) {
@@ -7269,6 +7280,23 @@ function addToIndex(indexId) {
     if (!list) {
       var crtList = $('.browserCrtList');
       if (crtList) {
+        var crtCat = '';
+        try { crtCat = new URLSearchParams(location.search).get('cat') || ''; } catch (e) {}
+        var crtIsPerson = crtCat === 'person' || (!crtList.querySelector('div[id^="item_character"]') && !!crtList.querySelector('div[id^="item_person"]'));
+        if (crtIsPerson && markPersonLists(crtList)) {
+          crtList.classList.add('bgm-idx-person-on');
+          document.documentElement.classList.add('bgm-idx-ready');
+          injectStyle();
+          window.__BGM_IDX_READER_DESTROY__ = function () {
+            crtList.classList.remove('bgm-idx-person-on');
+            var style = document.getElementById('bgm-idx-style');
+            if (style) style.remove();
+            document.documentElement.classList.remove('bgm-idx-ready');
+            delete window.__BGM_IDX_READER__;
+            delete window.__BGM_IDX_READER_DESTROY__;
+          };
+          return;
+        }
         bootCharacters(crtList);
         return;
       }
@@ -7520,7 +7548,15 @@ function addToIndex(indexId) {
       });
     }
     var crtSection = $('.browserCrtList');
-    if (crtSection) bootCharacters(crtSection, true);
+    if (crtSection) {
+      var mixedCat = '';
+      try { mixedCat = new URLSearchParams(location.search).get('cat') || ''; } catch (e) {}
+      if (mixedCat === 'person' && markPersonLists(crtSection)) {
+        crtSection.classList.add('bgm-idx-person-on');
+      } else {
+        bootCharacters(crtSection, true);
+      }
+    }
     markPersonLists();
 if (isCollectionPage) {
       collectionSiteSize = getItems().length || 24;

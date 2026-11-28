@@ -294,6 +294,7 @@ assert.equal(crtFocus.getAttribute('aria-pressed'), 'true', 'character focus pre
 crtFocus.click();
 assert.ok(!charDoc.documentElement.classList.contains('bgm-idx-focus'), 'character focus off');
 const crtSize = charDoc.getElementById('bgm-idx-crt-size');
+assert.ok(crtSize, 'character size control');
 change(domChar.window, crtSize, 'small');
 assert.equal(crt.dataset.bgmCrtSize, 'small', 'character size control');
 const crtSearch = charDoc.getElementById('bgm-idx-crt-q');
@@ -311,6 +312,23 @@ assert.ok(charDoc.getElementById('bgm-idx-crt-stats').textContent.includes('1 / 
 domChar.window.__BGM_IDX_READER_DESTROY__();
 assert.ok(!charDoc.documentElement.classList.contains('bgm-idx-focus'), 'character focus reset');
 assert.equal(charDoc.getElementById('bgm-idx-toolbar'), null, 'character toolbar removed');
+
+const personFixture = readFileSync(new URL('./person.html', import.meta.url), 'utf8');
+const domPerson = createDomFrom(personFixture, 'https://bgm.tv/index/72490?cat=person', null, null, 'kanakwi');
+await new Promise((resolve) => setTimeout(resolve, 600));
+const personDoc = domPerson.window.document;
+const personCrt = personDoc.querySelector('.browserCrtList');
+assert.ok(personCrt.classList.contains('bgm-idx-person-on'), 'person directory layout enabled');
+assert.ok(!personCrt.classList.contains('bgm-idx-crt-on'), 'person directory not treated as character wall');
+assert.equal(personDoc.querySelectorAll('.bgm-idx-person-list').length, 1, 'person items grouped');
+assert.equal(personDoc.querySelectorAll('.bgm-idx-person-list > div[id^="item_person"]').length, 2, 'person items wrapped');
+assert.equal(personDoc.getElementById('bgm-idx-toolbar'), null, 'person directory has no character toolbar');
+assert.equal(personDoc.getElementById('bgm-idx-crt-size'), null, 'person directory has no size control');
+assert.equal(personDoc.getElementById('bgm-idx-crt-q'), null, 'person directory has no character search');
+assert.ok(personDoc.documentElement.classList.contains('bgm-idx-ready'), 'person directory tokens applied');
+domPerson.window.__BGM_IDX_READER_DESTROY__();
+assert.ok(!personCrt.classList.contains('bgm-idx-person-on'), 'person directory layout removed');
+assert.ok(!personDoc.documentElement.classList.contains('bgm-idx-ready'), 'person directory tokens removed');
 
 const mixedFixture = characterFixture.replace(
   '<h2 class="subtitle">角色</h2>',
