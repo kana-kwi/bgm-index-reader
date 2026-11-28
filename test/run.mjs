@@ -582,4 +582,24 @@ assert.equal(otherNoRateItem.dataset.bgmScore, '', 'other unrated hides site sco
 assert.equal(otherNoRateItem.dataset.bgmMyRate, '8', 'own rating still shown when owner unrated');
 domOtherNoRate.window.__BGM_IDX_READER_DESTROY__();
 
+const sortFixture = fixture.replace('</body>', '<form id="ModifyRelatedForm"></form></body>');
+const domSort = createDomFrom(sortFixture, 'https://bgm.tv/index/103991', null, null, 'kanakwi');
+await new Promise((resolve) => setTimeout(resolve, 300));
+const sortDoc = domSort.window.document;
+const sortBtn = sortDoc.getElementById('bgm-idx-subject-sort');
+assert.ok(sortBtn, 'subject sort button exists');
+assert.equal(sortBtn.hidden, false, 'subject sort button visible for owner');
+assert.equal(sortDoc.getElementById('item_1').draggable, true, 'subject drag bound');
+sortDoc.querySelector('#bgm-idx-view button[data-view="list"]').click();
+await new Promise((resolve) => setTimeout(resolve, 100));
+sortBtn.click();
+assert.equal(sortDoc.getElementById('bgm-idx-subject-sortbar').hidden, false, 'subject sortbar shown');
+assert.equal(sortDoc.getElementById('item_1').classList.contains('is-subj-pick'), true, 'subject pick mode');
+sortDoc.getElementById('item_1').click();
+assert.ok(sortDoc.querySelector('#item_1 .bgm-idx-subj-pick'), 'subject pick badge shown');
+assert.ok(sortDoc.getElementById('bgm-idx-subject-sort-note').textContent.includes('1'), 'subject pick count');
+sortDoc.getElementById('bgm-idx-subject-sort-cancel').click();
+assert.equal(sortDoc.getElementById('bgm-idx-subject-sortbar').hidden, true, 'subject sort cancelled');
+domSort.window.__BGM_IDX_READER_DESTROY__();
+
 console.log('all tests passed');

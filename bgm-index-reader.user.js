@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.64
+// @version      0.1.65
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -4168,6 +4168,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
             <option value="relaxed">舒适</option>
           </select>
         </label>
+        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>批量排序</button>
         <button type="button" id="bgm-idx-batch-star" class="bgm-idx-btn" hidden>☆ 批量收录</button>
         <label id="bgm-idx-cover-size-wrap" class="bgm-idx-field" hidden>
           <span>大小</span>

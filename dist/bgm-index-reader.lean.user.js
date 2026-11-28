@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.64
+// @version      0.1.65
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -112,6 +112,7 @@
             <option value="relaxed">\u8212\u9002</option>
           </select>
         </label>
+        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>\u6279\u91CF\u6392\u5E8F</button>
         <button type="button" id="bgm-idx-batch-star" class="bgm-idx-btn" hidden>\u2606 \u6279\u91CF\u6536\u5F55</button>
         <label id="bgm-idx-cover-size-wrap" class="bgm-idx-field" hidden>
           <span>\u5927\u5C0F</span>
