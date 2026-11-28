@@ -419,6 +419,11 @@ assert.ok(userDoc.querySelector('.bgm-idx-ui-folder-card-name').textContent.incl
 assert.ok(userDoc.querySelector('.bgm-idx-ui-folder-card-desc').textContent.includes('记录每季新番'), 'user index folder desc');
 userDoc.querySelector('.bgm-idx-ui-folder-card').click();
 assert.ok(userDoc.querySelector('.bgm-idx-ui-section-title').textContent.includes('季度追番表'), 'user index folder view');
+assert.deepEqual(
+  [...userDoc.querySelectorAll('.bgm-idx-ui-section-actions button')].map((b) => b.textContent),
+  ['批量添加', '批量排序', '多选', '编辑', '删除', '返回未归档'],
+  'folder actions order'
+);
 const batchBtn = [...userDoc.querySelectorAll('.bgm-idx-ui-section-actions button')].find((b) => b.textContent.includes('批量添加'));
 assert.ok(batchBtn, 'user index batch button');
 batchBtn.click();
@@ -442,6 +447,11 @@ domRestored.window.__BGM_IDX_READER_DESTROY__();
 const backBtn = [...userDoc.querySelectorAll('.bgm-idx-ui-section-actions button')].find((b) => b.textContent.includes('返回未归档'));
 backBtn.click();
 assert.equal(userDoc.getElementById('item_2').hidden, false, 'user index back to loose');
+assert.deepEqual(
+  [...userDoc.querySelectorAll('.bgm-idx-ui-section-actions button')].map((b) => b.textContent),
+  ['新建文件夹', '批量排序', '多选'],
+  'loose actions order'
+);
 domUser.window.__BGM_IDX_READER_DESTROY__();
 assert.equal(userDoc.getElementById('bgm-idx-toolbar'), null, 'user index toolbar removed');
 

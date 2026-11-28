@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.66
+// @version      0.1.67
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -5776,8 +5776,8 @@ activeFolder = null;
         sortFolder.disabled = !visible.length;
         sortFolder.addEventListener('click', enterSortPick, { signal: ac.signal });
         actions.appendChild(batch);
-        actions.appendChild(pickFolder);
         actions.appendChild(sortFolder);
+        actions.appendChild(pickFolder);
         actions.appendChild(edit);
         actions.appendChild(del);
         actions.appendChild(back);
@@ -5794,8 +5794,8 @@ activeFolder = null;
         sortLoose.disabled = !visible.length;
         sortLoose.addEventListener('click', enterSortPick, { signal: ac.signal });
         actions.appendChild(create);
-        actions.appendChild(pickLoose);
         actions.appendChild(sortLoose);
+        actions.appendChild(pickLoose);
       }
       row.appendChild(title);
       row.appendChild(actions);
