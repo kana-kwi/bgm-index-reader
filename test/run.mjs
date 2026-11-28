@@ -78,7 +78,7 @@ assert.equal(doc.querySelectorAll('#browserItemList > li.item').length, 7, 'item
 
 const first = doc.getElementById('item_1');
 assert.equal(first.dataset.bgmDate, '2026-10-05', 'date parsed');
-assert.equal(first.querySelector('.bgm-idx-date').textContent, '10月5日', 'date split');
+assert.equal(first.querySelector('.bgm-idx-date').textContent, '2026年10月5日', 'date split with year');
 assert.ok(first.querySelector('.bgm-idx-staff').textContent.includes('橋本裕之'), 'staff split');
 assert.equal(first.dataset.bgmScore, '6.2', 'score parsed');
 assert.equal(first.dataset.bgmCount, '167', 'score count parsed');
@@ -96,6 +96,8 @@ assert.equal(first.querySelector('.bgm-idx-watch-count').hidden, false, 'watch c
 assert.equal(first.querySelector('.bgm-idx-score-count'), null, 'count removed from score row');
 assert.ok(/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/.test(code), 'two-column grid');
 assert.ok(code.includes('.bgm-idx-score-mymark'), 'personal rating marker style');
+assert.ok(code.includes('data-bgm-grid-info="always"'), 'cover info always style');
+assert.ok(code.includes('@media (max-width: 480px)'), 'mobile cover sizes');
 
 const staffBtn = doc.getElementById('bgm-idx-staff');
 staffBtn.click();
@@ -185,6 +187,13 @@ assert.equal(doc.getElementById('browserItemList').dataset.bgmCoverSize, 'medium
 assert.equal(doc.getElementById('bgm-idx-staff').hidden, true, 'staff hidden in cover wall');
 assert.equal(doc.getElementById('bgm-idx-density-wrap').hidden, true, 'density hidden in cover wall');
 assert.equal(doc.getElementById('bgm-idx-cover-size-wrap').hidden, false, 'cover size visible');
+assert.equal(doc.getElementById('bgm-idx-grid-info-wrap').hidden, false, 'cover info visible');
+assert.equal(doc.getElementById('browserItemList').dataset.bgmGridInfo, 'hover', 'cover info default hover');
+const gridInfo = doc.getElementById('bgm-idx-grid-info');
+change(window, gridInfo, 'always');
+assert.equal(doc.getElementById('browserItemList').dataset.bgmGridInfo, 'always', 'cover info always');
+const subOrder = [...doc.querySelectorAll('.bgm-idx-row-sub > *')].map((el) => el.id).filter(Boolean);
+assert.ok(subOrder.indexOf('bgm-idx-cover-size-wrap') < subOrder.indexOf('bgm-idx-subject-sort'), 'cover size before subject sort');
 const coverSize = doc.getElementById('bgm-idx-cover-size');
 change(window, coverSize, 'small');
 assert.equal(doc.getElementById('browserItemList').dataset.bgmCoverSize, 'small', 'cover size small');
@@ -196,6 +205,7 @@ doc.querySelector('#bgm-idx-view button[data-view="list"]').click();
 assert.equal(doc.getElementById('bgm-idx-staff').hidden, false, 'staff visible outside cover wall');
 assert.equal(doc.getElementById('bgm-idx-density-wrap').hidden, false, 'density visible outside cover wall');
 assert.equal(doc.getElementById('bgm-idx-cover-size-wrap').hidden, true, 'cover size hidden outside cover wall');
+assert.equal(doc.getElementById('bgm-idx-grid-info-wrap').hidden, true, 'cover info hidden outside cover wall');
 
 const densitySelect = doc.getElementById('bgm-idx-density');
 change(window, densitySelect, 'relaxed');
@@ -213,22 +223,24 @@ clickSort(doc, 'date');
 assert.ok(doc.getElementById('bgm-idx-sort-btn').textContent.includes('↑'), 'timeline date toggles ascending');
 closeSort(doc);
 
-const dom2 = createDom('https://bgm.tv/index/103991?bgm-view=list&bgm-density=relaxed&bgm-cover-size=small&bgm-sort=score-asc&bgm-state=doing&bgm-score=7');
+const dom2 = createDom('https://bgm.tv/index/103991?bgm-view=list&bgm-density=relaxed&bgm-cover-size=small&bgm-grid-info=always&bgm-sort=score-asc&bgm-state=doing&bgm-score=7');
 const doc2 = dom2.window.document;
 assert.equal(doc2.getElementById('browserItemList').getAttribute('data-bgm-view'), 'list', 'url view restored');
 assert.equal(doc2.getElementById('browserItemList').dataset.bgmDensity, 'relaxed', 'url density restored');
 assert.equal(doc2.getElementById('browserItemList').dataset.bgmCoverSize, 'small', 'url cover size restored');
+assert.equal(doc2.getElementById('browserItemList').dataset.bgmGridInfo, 'always', 'url cover info restored');
 assert.equal(doc2.getElementById('bgm-idx-sort-btn').textContent, '原顺序', 'url sort ignored');
 assert.equal(doc2.getElementById('bgm-idx-state').value, 'all', 'url state filter ignored');
 assert.equal(doc2.getElementById('bgm-idx-score').value, 'all', 'url score filter ignored');
 assert.equal(doc2.getElementById('bgm-idx-size').value, '20', 'default page size');
 assert.equal(visibleItems(doc2).length, 7, 'url filters ignored');
 
-const dom3 = createDom('https://bgm.tv/index/103991', { view: 'list', density: 'relaxed', coverSize: 'large', pageSize: 100, sort: 'score-asc', score: '7', state: 'wish' });
+const dom3 = createDom('https://bgm.tv/index/103991', { view: 'list', density: 'relaxed', coverSize: 'large', gridInfo: 'always', pageSize: 100, sort: 'score-asc', score: '7', state: 'wish' });
 const doc3 = dom3.window.document;
 assert.equal(doc3.getElementById('browserItemList').getAttribute('data-bgm-view'), 'list', 'localStorage view restored');
 assert.equal(doc3.getElementById('browserItemList').dataset.bgmDensity, 'relaxed', 'localStorage density restored');
 assert.equal(doc3.getElementById('browserItemList').dataset.bgmCoverSize, 'large', 'localStorage cover size restored');
+assert.equal(doc3.getElementById('browserItemList').dataset.bgmGridInfo, 'always', 'localStorage cover info restored');
 assert.equal(doc3.getElementById('bgm-idx-size').value, '20', 'localStorage page size ignored');
 assert.equal(doc3.getElementById('bgm-idx-sort-btn').textContent, '原顺序', 'localStorage sort ignored');
 assert.equal(doc3.getElementById('bgm-idx-score').value, 'all', 'localStorage score filter ignored');

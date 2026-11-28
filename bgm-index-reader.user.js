@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.67
+// @version      0.1.68
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -77,6 +77,7 @@
     view: 'list',
     density: 'compact',
     coverSize: 'medium',
+    gridInfo: 'hover',
     sort: 'default',
     pageSize: 20,
     showStaff: false,
@@ -967,6 +968,12 @@ html.bgm-idx-focus #browserItemList.bgm-idx-on {
   opacity: 1;
   transform: none;
 }
+#browserItemList.bgm-idx-on[data-bgm-view="grid"][data-bgm-grid-info="always"] > li.item > div.inner > h3,
+#browserItemList.bgm-idx-on[data-bgm-view="grid"][data-bgm-grid-info="always"] > li.item .bgm-idx-score,
+#browserItemList.bgm-idx-on[data-bgm-view="grid"][data-bgm-grid-info="always"] > li.item .bgm-idx-state {
+  opacity: 1;
+  transform: none;
+}
 html.bgm-idx-focus #browserItemList.bgm-idx-on[data-bgm-view="grid"] {
   grid-template-columns: repeat(auto-fill, minmax(var(--idx-cover-cell, 120px), 1fr)) !important;
 }
@@ -980,6 +987,17 @@ html.bgm-idx-focus #browserItemList.bgm-idx-on[data-bgm-view="grid"] {
   }
   #browserItemList.bgm-idx-on[data-bgm-density="relaxed"] {
     --idx-cover: 56px;
+  }
+}
+@media (max-width: 480px) {
+  #browserItemList.bgm-idx-on[data-bgm-view="grid"][data-bgm-cover-size="small"] {
+    --idx-cover-cell: 76px;
+  }
+  #browserItemList.bgm-idx-on[data-bgm-view="grid"][data-bgm-cover-size="medium"] {
+    --idx-cover-cell: 96px;
+  }
+  #browserItemList.bgm-idx-on[data-bgm-view="grid"][data-bgm-cover-size="large"] {
+    --idx-cover-cell: 120px;
   }
 }
 #browserItemList.bgm-idx-on h3 .ico_subject_type {
@@ -2375,6 +2393,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
       var view = p.get('bgm-view');
       var density = p.get('bgm-density');
       var coverSize = p.get('bgm-cover-size');
+      var gridInfo = p.get('bgm-grid-info');
       var sort = p.get('bgm-sort');
       var size = p.get('bgm-size');
       var staff = p.get('bgm-staff');
@@ -2384,6 +2403,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
       if (view === 'timeline' || view === 'list' || view === 'grid') s.view = view;
       if (density === 'compact' || density === 'relaxed') s.density = density;
       if (coverSize === 'small' || coverSize === 'medium' || coverSize === 'large') s.coverSize = coverSize;
+      if (gridInfo === 'hover' || gridInfo === 'always') s.gridInfo = gridInfo;
       if (sort === 'default' || sort === 'date-asc' || sort === 'date-desc' || sort === 'score-desc' || sort === 'score-asc' || sort === 'count-desc' || sort === 'count-asc' || sort === 'title-asc' || sort === 'title-desc') s.sort = sort;
       if (size === '20' || size === '50' || size === '100' || size === '0') s.pageSize = +size;
       if (staff === '1') s.showStaff = true;
@@ -2399,6 +2419,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
     s.sort = s.view === 'timeline' && !isCollectionPage ? 'date-asc' : DEFAULTS.sort;
     if (s.density !== 'compact' && s.density !== 'relaxed') s.density = DEFAULTS.density;
     if (s.coverSize !== 'small' && s.coverSize !== 'medium' && s.coverSize !== 'large') s.coverSize = DEFAULTS.coverSize;
+    if (s.gridInfo !== 'hover' && s.gridInfo !== 'always') s.gridInfo = DEFAULTS.gridInfo;
     if (s.sort !== 'default' && s.sort !== 'date-asc' && s.sort !== 'date-desc' && s.sort !== 'score-desc' && s.sort !== 'score-asc' && s.sort !== 'count-desc' && s.sort !== 'count-asc' && s.sort !== 'title-asc' && s.sort !== 'title-desc') s.sort = DEFAULTS.sort;
     s.pageSize = +s.pageSize;
     if (s.pageSize !== 20 && s.pageSize !== 50 && s.pageSize !== 100 && s.pageSize !== 0) s.pageSize = DEFAULTS.pageSize;
@@ -2414,6 +2435,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
       view: state.view,
       density: state.density,
       coverSize: state.coverSize,
+      gridInfo: state.gridInfo,
       showStaff: state.showStaff
     };
     try {
@@ -2429,6 +2451,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
       if (state.view !== DEFAULTS.view) p.set('bgm-view', state.view); else p.delete('bgm-view');
       if (state.density !== DEFAULTS.density) p.set('bgm-density', state.density); else p.delete('bgm-density');
       if (state.coverSize !== DEFAULTS.coverSize) p.set('bgm-cover-size', state.coverSize); else p.delete('bgm-cover-size');
+      if (state.gridInfo !== DEFAULTS.gridInfo) p.set('bgm-grid-info', state.gridInfo); else p.delete('bgm-grid-info');
       p.delete('bgm-sort');
       p.delete('bgm-size');
       if (state.showStaff !== DEFAULTS.showStaff) p.set('bgm-staff', state.showStaff ? '1' : '0'); else p.delete('bgm-staff');
@@ -2465,7 +2488,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
     if (m) {
       return {
         key: m[1] + '-' + pad(m[2]) + '-' + pad(m[3]),
-        label: (+m[2]) + '月' + (+m[3]) + '日'
+        label: m[1] + '年' + (+m[2]) + '月' + (+m[3]) + '日'
       };
     }
     m = /^(\d{4})\s*[年\-\/]\s*(\d{1,2})\s*月?/.exec(s);
@@ -3531,6 +3554,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
     var size = $('#bgm-idx-size', toolbar);
     var density = $('#bgm-idx-density', toolbar);
     var coverSize = $('#bgm-idx-cover-size', toolbar);
+    var gridInfo = $('#bgm-idx-grid-info', toolbar);
     var st = $('#bgm-idx-state', toolbar);
     var sc = $('#bgm-idx-score', toolbar);
     var staff = $('#bgm-idx-staff', toolbar);
@@ -3538,6 +3562,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
     if (size) size.value = String(state.pageSize);
     if (density) density.value = state.density;
     if (coverSize) coverSize.value = state.coverSize;
+    if (gridInfo) gridInfo.value = state.gridInfo;
     if (st) st.value = state.state;
     if (sc) sc.value = state.score;
     if (staff) {
@@ -3546,8 +3571,10 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
     }
     var densityWrap = $('#bgm-idx-density-wrap', toolbar);
     var coverSizeWrap = $('#bgm-idx-cover-size-wrap', toolbar);
+    var gridInfoWrap = $('#bgm-idx-grid-info-wrap', toolbar);
     if (densityWrap) densityWrap.hidden = state.view === 'grid';
     if (coverSizeWrap) coverSizeWrap.hidden = state.view !== 'grid';
+    if (gridInfoWrap) gridInfoWrap.hidden = state.view !== 'grid';
     if (focus) focus.setAttribute('aria-pressed', document.documentElement.classList.contains('bgm-idx-focus') ? 'true' : 'false');
     if (searchInput && searchInput.value !== state.q) searchInput.value = state.q;
     updateSortUI();
@@ -3888,6 +3915,7 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
     list.setAttribute('data-bgm-view', state.view);
     list.dataset.bgmDensity = state.density;
     list.dataset.bgmCoverSize = state.coverSize;
+    list.dataset.bgmGridInfo = state.gridInfo;
     list.classList.toggle('bgm-idx-show-staff', !!state.showStaff);
     var all = getItems();
     applyCachedMyRatings(all);
@@ -4169,8 +4197,6 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
             <option value="relaxed">舒适</option>
           </select>
         </label>
-        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>批量排序</button>
-        <button type="button" id="bgm-idx-batch-star" class="bgm-idx-btn" hidden>☆ 批量收录</button>
         <label id="bgm-idx-cover-size-wrap" class="bgm-idx-field" hidden>
           <span>大小</span>
           <select id="bgm-idx-cover-size" aria-label="封面大小">
@@ -4179,6 +4205,15 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
             <option value="large">大</option>
           </select>
         </label>
+        <button type="button" id="bgm-idx-subject-sort" class="bgm-idx-btn" hidden>批量排序</button>
+        <label id="bgm-idx-grid-info-wrap" class="bgm-idx-field" hidden>
+          <span>信息</span>
+          <select id="bgm-idx-grid-info" aria-label="封面信息显示">
+            <option value="hover">悬停显示</option>
+            <option value="always">常显</option>
+          </select>
+        </label>
+        <button type="button" id="bgm-idx-batch-star" class="bgm-idx-btn" hidden>☆ 批量收录</button>
         <div id="bgm-idx-chips" class="bgm-idx-chips" aria-live="polite" hidden></div>
         <div id="bgm-idx-stats" class="bgm-idx-stats" aria-live="polite"></div>
         <div id="bgm-idx-subject-sortbar" class="bgm-idx-subject-sortbar" hidden>
@@ -4372,6 +4407,11 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
       } else if (id === 'bgm-idx-cover-size') {
         state.coverSize = e.target.value;
         applyWithFlip(true);
+      } else if (id === 'bgm-idx-grid-info') {
+        state.gridInfo = e.target.value === 'always' ? 'always' : 'hover';
+        list.dataset.bgmGridInfo = state.gridInfo;
+        saveState();
+        syncControls();
       } else if (id === 'bgm-idx-state') {
         state.state = e.target.value;
         page = 1;
