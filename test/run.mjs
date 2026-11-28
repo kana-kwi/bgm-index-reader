@@ -602,4 +602,22 @@ sortDoc.getElementById('bgm-idx-subject-sort-cancel').click();
 assert.equal(sortDoc.getElementById('bgm-idx-subject-sortbar').hidden, true, 'subject sort cancelled');
 domSort.window.__BGM_IDX_READER_DESTROY__();
 
+const domStarBatch = createDomFrom(fixture, 'https://bgm.tv/index/103991', null, null, 'steeto');
+await new Promise((resolve) => setTimeout(resolve, 300));
+const starDoc = domStarBatch.window.document;
+const starBatchBtn = starDoc.getElementById('bgm-idx-batch-star');
+assert.ok(starBatchBtn, 'batch star button exists');
+assert.equal(starBatchBtn.hidden, false, 'batch star visible on other directory');
+const starBar = starDoc.getElementById('bgm-idx-star-bar');
+assert.ok(starBar, 'star bar exists');
+assert.ok(starBar.closest('#bgm-idx-toolbar'), 'star bar inside toolbar');
+assert.equal(starBar.hidden, true, 'star bar hidden initially');
+starBatchBtn.click();
+assert.equal(starBar.hidden, false, 'star bar shown in batch mode');
+assert.ok(starDoc.querySelector('#bgm-idx-toolbar #bgm-idx-star-bar-pick'), 'pick button inside toolbar');
+assert.ok(starDoc.querySelector('#bgm-idx-toolbar #bgm-idx-star-bar-cancel'), 'cancel button inside toolbar');
+starDoc.getElementById('bgm-idx-star-bar-cancel').click();
+assert.equal(starBar.hidden, true, 'star bar hidden after cancel');
+domStarBatch.window.__BGM_IDX_READER_DESTROY__();
+
 console.log('all tests passed');

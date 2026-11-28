@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.65
+// @version      0.1.66
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -1892,8 +1892,9 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 0;
+  padding: 4px 0 0;
   flex-wrap: wrap;
+  flex: 1 1 100%;
 }
 .bgm-idx-star-bar[hidden] {
   display: none !important;
@@ -4201,7 +4202,8 @@ html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
     starBar.innerHTML = '<span id="bgm-idx-star-bar-note"></span>' +
       '<button type="button" id="bgm-idx-star-bar-pick" class="bgm-idx-btn is-primary">选择目录</button>' +
       '<button type="button" id="bgm-idx-star-bar-cancel" class="bgm-idx-btn">取消</button>';
-    if (toolbar.parentNode) toolbar.parentNode.insertBefore(starBar, toolbar.nextSibling);
+    var subRow = $('.bgm-idx-row-sub', toolbar);
+    if (subRow) subRow.appendChild(starBar);
     searchInput = $('#bgm-idx-q', toolbar);
     statsEl = $('#bgm-idx-stats', toolbar);
     chipsEl = $('#bgm-idx-chips', toolbar);
@@ -7658,6 +7660,7 @@ function addToIndex(indexId) {
         starBar.hidden = true;
         batchBtn.textContent = '☆ 批量收录';
         updateBar();
+        raf(updateLayoutVars);
       }
       function enterBatch() {
         starBatch = true;
@@ -7665,6 +7668,7 @@ function addToIndex(indexId) {
         starBar.hidden = false;
         batchBtn.textContent = '★ 批量收录';
         updateBar();
+        raf(updateLayoutVars);
       }
       batchBtn.addEventListener('click', function () {
         if (starBatch) exitBatch();
