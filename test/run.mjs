@@ -325,9 +325,35 @@ assert.equal(personDoc.querySelectorAll('.bgm-idx-person-list > div[id^="item_pe
 assert.equal(personDoc.getElementById('bgm-idx-toolbar'), null, 'person directory has no character toolbar');
 assert.equal(personDoc.getElementById('bgm-idx-crt-size'), null, 'person directory has no size control');
 assert.equal(personDoc.getElementById('bgm-idx-crt-q'), null, 'person directory has no character search');
+assert.ok(personDoc.getElementById('bgm-idx-person-toolbar'), 'person toolbar exists');
+const personQ = personDoc.getElementById('bgm-idx-prsn-q');
+assert.ok(personQ, 'person search exists');
+const personDensity = personDoc.getElementById('bgm-idx-prsn-density');
+assert.ok(personDensity, 'person density control exists');
+assert.equal(personCrt.dataset.bgmPrsnDensity, 'compact', 'person compact by default');
+change(domPerson.window, personDensity, 'relaxed');
+assert.equal(personCrt.dataset.bgmPrsnDensity, 'relaxed', 'person density relaxed');
+const personFocus = personDoc.getElementById('bgm-idx-prsn-focus');
+assert.ok(personFocus, 'person focus button exists');
+personFocus.click();
+assert.ok(personDoc.documentElement.classList.contains('bgm-idx-focus'), 'person focus on');
+assert.equal(personFocus.getAttribute('aria-pressed'), 'true', 'person focus pressed');
+personFocus.click();
+assert.ok(!personDoc.documentElement.classList.contains('bgm-idx-focus'), 'person focus off');
+personQ.value = '人物甲';
+personQ.dispatchEvent(new domPerson.window.Event('input', { bubbles: true }));
+assert.ok(personDoc.getElementById('item_person2').hidden, 'person search hides non-match');
+assert.ok(!personDoc.getElementById('item_person1').hidden, 'person search keeps match');
+assert.ok(personDoc.getElementById('bgm-idx-prsn-stats').textContent.includes('1 / 2'), 'person search stats');
+personQ.value = '';
+personQ.dispatchEvent(new domPerson.window.Event('input', { bubbles: true }));
+assert.ok(!personDoc.getElementById('item_person2').hidden, 'person search reset');
 assert.ok(personDoc.documentElement.classList.contains('bgm-idx-ready'), 'person directory tokens applied');
 domPerson.window.__BGM_IDX_READER_DESTROY__();
 assert.ok(!personCrt.classList.contains('bgm-idx-person-on'), 'person directory layout removed');
+assert.equal(personDoc.getElementById('bgm-idx-person-toolbar'), null, 'person toolbar removed');
+assert.equal(personDoc.querySelectorAll('.bgm-idx-person-list').length, 0, 'person wrap removed');
+assert.ok(!personDoc.documentElement.classList.contains('bgm-idx-focus'), 'person focus reset');
 assert.ok(!personDoc.documentElement.classList.contains('bgm-idx-ready'), 'person directory tokens removed');
 
 const mixedFixture = characterFixture.replace(

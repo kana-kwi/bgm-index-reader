@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.63
+// @version      0.1.64
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -127,7 +127,7 @@ html.bgm-idx-ready[data-theme="dark"] {
   --idx-shadow-2: 0 12px 32px rgba(0,0,0,.45);
   --idx-focus: 0 0 0 3px rgba(240,145,153,.45);
 }
-#bgm-idx-toolbar {
+.bgm-idx-toolbar {
   position: -webkit-sticky;
   position: sticky;
   top: var(--idx-sticky-top);
@@ -148,29 +148,29 @@ html.bgm-idx-ready[data-theme="dark"] {
   transition: box-shadow var(--idx-dur-fast) var(--idx-ease);
 }
 @supports (backdrop-filter: blur(1px)) {
-  #bgm-idx-toolbar {
+  .bgm-idx-toolbar {
     backdrop-filter: blur(12px);
   }
 }
-#bgm-idx-toolbar.is-stuck {
+.bgm-idx-toolbar.is-stuck {
   box-shadow: var(--idx-shadow-1);
 }
-#bgm-idx-toolbar .bgm-idx-row {
+.bgm-idx-toolbar .bgm-idx-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   min-width: 0;
 }
-#bgm-idx-toolbar .bgm-idx-row-sub {
+.bgm-idx-toolbar .bgm-idx-row-sub {
   gap: 8px;
 }
-#bgm-idx-toolbar .bgm-idx-search {
+.bgm-idx-toolbar .bgm-idx-search {
   flex: 1 1 160px;
   min-width: 130px;
   display: flex;
 }
-#bgm-idx-toolbar .bgm-idx-search input {
+.bgm-idx-toolbar .bgm-idx-search input {
   width: 100%;
   height: 26px;
   box-sizing: border-box;
@@ -183,14 +183,14 @@ html.bgm-idx-ready[data-theme="dark"] {
   font-size: 12px;
   outline: none;
 }
-#bgm-idx-toolbar .bgm-idx-search input::placeholder {
+.bgm-idx-toolbar .bgm-idx-search input::placeholder {
   color: var(--idx-text-3);
 }
-#bgm-idx-toolbar .bgm-idx-search input:focus {
+.bgm-idx-toolbar .bgm-idx-search input:focus {
   border-color: var(--idx-accent);
   box-shadow: var(--idx-focus);
 }
-#bgm-idx-toolbar .bgm-idx-sr {
+.bgm-idx-toolbar .bgm-idx-sr {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -201,16 +201,16 @@ html.bgm-idx-ready[data-theme="dark"] {
   white-space: nowrap;
   border: 0;
 }
-#bgm-idx-toolbar .bgm-idx-field {
+.bgm-idx-toolbar .bgm-idx-field {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
-#bgm-idx-toolbar .bgm-idx-field > span {
+.bgm-idx-toolbar .bgm-idx-field > span {
   color: var(--idx-text-3);
   white-space: nowrap;
 }
-#bgm-idx-toolbar select {
+.bgm-idx-toolbar select {
   height: 26px;
   width: 72px;
   max-width: 72px;
@@ -223,11 +223,11 @@ html.bgm-idx-ready[data-theme="dark"] {
   font: inherit;
   font-size: 11px;
 }
-#bgm-idx-toolbar select:focus-visible {
+.bgm-idx-toolbar select:focus-visible {
   outline: none;
   box-shadow: var(--idx-focus);
 }
-#bgm-idx-toolbar select:disabled {
+.bgm-idx-toolbar select:disabled {
   opacity: .45;
   cursor: not-allowed;
 }
@@ -309,7 +309,7 @@ html.bgm-idx-ready[data-theme="dark"] {
   align-items: center;
   gap: 4px;
 }
-#bgm-idx-toolbar [hidden],
+.bgm-idx-toolbar [hidden],
 #bgm-idx-pager[hidden],
 #bgm-idx-top[hidden] {
   display: none !important;
@@ -714,13 +714,13 @@ html.bgm-idx-focus #browserItemList.bgm-idx-on {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
 }
 @media (max-width: 720px) {
-  #bgm-idx-toolbar {
+  .bgm-idx-toolbar {
     position: static;
   }
-  #bgm-idx-toolbar .bgm-idx-row {
+  .bgm-idx-toolbar .bgm-idx-row {
     gap: 4px;
   }
-  #bgm-idx-toolbar .bgm-idx-stats {
+  .bgm-idx-toolbar .bgm-idx-stats {
     width: 100%;
     margin-left: 0;
     white-space: normal;
@@ -1729,19 +1729,9 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
   border-color: var(--idx-accent);
 }
 .browserCrtList.bgm-idx-person-on {
-  display: block !important;
-  grid-template-columns: none !important;
-  gap: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-.browserCrtList.bgm-idx-person-on .browserCrtList {
-  display: block !important;
-}
-.bgm-idx-person-list {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 0 !important;
+  gap: 0 12px !important;
   margin: 0 !important;
   padding: 0 !important;
   background: var(--idx-surface-1) !important;
@@ -1749,82 +1739,153 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
   border-radius: var(--idx-radius-md, 10px);
   overflow: hidden;
 }
+.browserCrtList.bgm-idx-person-on[data-bgm-prsn-density="relaxed"] {
+  --idx-prsn-cover: 76px;
+}
+.bgm-idx-person-list {
+  display: contents !important;
+}
 .bgm-idx-person-list > div[id^="item_person"] {
   display: grid !important;
-  grid-template-columns: 96px minmax(0, 1fr) !important;
-  height: 124px !important;
-  padding: 0 !important;
+  grid-template-columns: var(--idx-prsn-cover, 64px) minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto !important;
+  align-content: start !important;
+  align-items: start !important;
+  gap: 2px 10px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 10px 12px !important;
   border: 0 !important;
   border-bottom: 1px solid var(--idx-border) !important;
   border-radius: 0 !important;
   background: transparent !important;
   overflow: hidden !important;
 }
-.bgm-idx-person-list > div[id^="item_person"]:nth-child(odd) {
-  border-right: 1px solid var(--idx-border) !important;
-}
 .bgm-idx-person-list > div[id^="item_person"]:hover {
-  background: var(--idx-surface-3) !important;
+  background: var(--idx-surface-2) !important;
+}
+.bgm-idx-person-list > div[id^="item_person"][hidden] {
+  display: none !important;
 }
 .bgm-idx-person-list > div[id^="item_person"] > .rr {
   display: none !important;
 }
 .bgm-idx-person-list > div[id^="item_person"] > a.avatar {
   grid-column: 1 !important;
-  grid-row: 1 !important;
-  width: 96px !important;
-  height: 124px !important;
+  grid-row: 1 / span 3 !important;
   display: block !important;
+  width: var(--idx-prsn-cover, 64px) !important;
+  height: var(--idx-prsn-cover, 64px) !important;
   margin: 0 !important;
+  overflow: hidden;
+  border-radius: var(--idx-radius-sm) !important;
 }
 .bgm-idx-person-list > div[id^="item_person"] > a.avatar img {
+  display: block !important;
   width: 100% !important;
   height: 100% !important;
-  object-fit: contain !important;
+  margin: 0 !important;
+  object-fit: cover !important;
+  object-position: center top !important;
   background: var(--idx-surface-2) !important;
-  border-radius: 0 !important;
+  border-radius: var(--idx-radius-sm) !important;
 }
 .bgm-idx-person-list > div[id^="item_person"] > div:not(.rr) {
-  grid-column: 2 !important;
-  grid-row: 1 !important;
-  position: static !important;
-  padding: 10px 12px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  gap: 5px !important;
-  background: transparent !important;
+  display: contents !important;
+  padding: 0 !important;
 }
 .bgm-idx-person-list > div[id^="item_person"] h3 {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  min-width: 0;
   margin: 0 !important;
   padding: 0 !important;
-  font-size: 14px !important;
-  line-height: 1.4 !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
 }
 .bgm-idx-person-list > div[id^="item_person"] h3 a.l {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   color: var(--idx-text-1) !important;
+  text-decoration: none;
   text-shadow: none !important;
+  overflow-wrap: anywhere;
+}
+.bgm-idx-person-list > div[id^="item_person"] h3 a.l:hover {
+  color: var(--idx-accent) !important;
 }
 .bgm-idx-person-list > div[id^="item_person"] .prsn_info {
   display: block !important;
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
   font-size: 12px !important;
-  color: var(--idx-text-3) !important;
+  line-height: 1.5 !important;
+  color: var(--idx-text-2) !important;
 }
 .bgm-idx-person-list > div[id^="item_person"] .prsn_info .badge_job {
-  color: var(--idx-accent) !important;
+  font-size: 10px !important;
+  line-height: 1.6 !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] .comment-box {
+  display: block !important;
+  grid-column: 2 !important;
+  grid-row: 3 !important;
+  min-width: 0;
+  margin: 4px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] .comment-box .item {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] .comment-box .text_main_even,
+.bgm-idx-person-list > div[id^="item_person"] .comment-box .text_main_odd {
+  background: transparent !important;
+  padding: 0 !important;
+}
+.bgm-idx-person-list > div[id^="item_person"] .comment-box .text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0 !important;
+  padding: 3px 6px !important;
+  border-left: 2px solid var(--idx-border) !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: var(--idx-text-3) !important;
+  background: transparent !important;
+}
+.browserCrtList.bgm-idx-person-on[data-bgm-prsn-density="relaxed"] .bgm-idx-person-list > div[id^="item_person"] {
+  padding: 14px !important;
+  gap: 3px 12px !important;
+}
+.browserCrtList.bgm-idx-person-on[data-bgm-prsn-density="relaxed"] .bgm-idx-person-list > div[id^="item_person"] h3 {
+  font-size: 16px !important;
+}
+html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
 }
 @media (max-width: 720px) {
-  .bgm-idx-person-list {
-    grid-template-columns: 1fr !important;
+  .browserCrtList.bgm-idx-person-on,
+  html.bgm-idx-focus .browserCrtList.bgm-idx-person-on {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
-  .bgm-idx-person-list > div[id^="item_person"] {
-    height: 110px !important;
-    grid-template-columns: 86px minmax(0, 1fr) !important;
-    border-right: 0 !important;
+  .browserCrtList.bgm-idx-person-on {
+    --idx-prsn-cover: 48px;
   }
-  .bgm-idx-person-list > div[id^="item_person"] > a.avatar {
-    width: 86px !important;
-    height: 110px !important;
+  .browserCrtList.bgm-idx-person-on[data-bgm-prsn-density="relaxed"] {
+    --idx-prsn-cover: 56px;
   }
 }
 .bgm-idx-star-bar {
@@ -2167,7 +2228,7 @@ li.bgm-idx-browser-item .bgm-idx-card-star.is-done {
 }
 @media (prefers-reduced-motion: reduce) {
   #browserItemList.bgm-idx-on *,
-  #bgm-idx-toolbar *,
+  .bgm-idx-toolbar *,
   #bgm-idx-pager *,
   #bgm-idx-top {
     transition: none !important;
@@ -7274,6 +7335,150 @@ function addToIndex(indexId) {
     return groups.length > 0;
   }
 
+  var personBooted = false;
+  var personAc = new AbortController();
+  var personToolbar = null;
+  var personItems = [];
+  var personRender = null;
+
+  function bootPersonDirectory(crt) {
+    if (personBooted) return;
+    personBooted = true;
+    crt.classList.add('bgm-idx-person-on');
+    var prefs = loadCloudPrefs() || {};
+    var density = prefs.personDensity || '';
+    if (!/^(compact|relaxed)$/.test(density)) {
+      try { density = localStorage.getItem('bgm-index-reader:person-density:v1') || 'compact'; } catch (e) { density = 'compact'; }
+    }
+    if (!/^(compact|relaxed)$/.test(density)) density = 'compact';
+    crt.dataset.bgmPrsnDensity = density;
+    if (!prefs.personDensity) {
+      try { localStorage.setItem('bgm-index-reader:person-density:v1', density); } catch (e) {}
+      saveCloudPrefs({ personDensity: density });
+    }
+
+    personToolbar = document.createElement('div');
+    personToolbar.id = 'bgm-idx-person-toolbar';
+    personToolbar.className = 'bgm-idx-toolbar';
+    personToolbar.setAttribute('role', 'region');
+    personToolbar.setAttribute('aria-label', '人物阅读工具');
+    personToolbar.innerHTML = `
+      <div class="bgm-idx-row">
+        <label class="bgm-idx-search">
+          <span class="bgm-idx-sr">搜索人物</span>
+          <input id="bgm-idx-prsn-q" type="search" placeholder="搜索人物…" autocomplete="off">
+        </label>
+        <label class="bgm-idx-field">
+          <span>密度</span>
+          <select id="bgm-idx-prsn-density" aria-label="显示密度">
+            <option value="compact">紧凑</option>
+            <option value="relaxed">舒适</option>
+          </select>
+        </label>
+        <button type="button" id="bgm-idx-prsn-focus" class="bgm-idx-btn" aria-pressed="false" title="专注（快捷键 ~）">专注</button>
+        <div id="bgm-idx-prsn-stats" class="bgm-idx-stats" aria-live="polite"></div>
+      </div>
+    `;
+    if (crt.parentNode) crt.parentNode.insertBefore(personToolbar, crt);
+    var search = $('#bgm-idx-prsn-q', personToolbar);
+    var densitySel = $('#bgm-idx-prsn-density', personToolbar);
+    var focusBtn = $('#bgm-idx-prsn-focus', personToolbar);
+    var stats = $('#bgm-idx-prsn-stats', personToolbar);
+    if (densitySel) densitySel.value = density;
+    personItems = $$('div[id^="item_person"]', crt);
+
+    function render() {
+      var q = String(search && search.value || '').trim();
+      var tokens = q.split(/[\s\u3000]+/).filter(Boolean).map(normalizeSearch);
+      var visible = 0;
+      personItems.forEach(function (item) {
+        var nameLink = $('h3 a.l', item);
+        var hay = normalizeSearch([
+          text(nameLink),
+          text($('.prsn_info', item)),
+          text($('.comment-box', item))
+        ].join(' '));
+        var hide = tokens.some(function (t) { return hay.indexOf(t) < 0; });
+        item.hidden = hide;
+        if (!hide) visible++;
+      });
+      if (stats) stats.textContent = '人物 ' + visible + ' / ' + personItems.length;
+    }
+    personRender = render;
+    render();
+    if (search) search.addEventListener('input', render, { signal: personAc.signal });
+
+    if (densitySel) {
+      densitySel.addEventListener('change', function () {
+        var next = densitySel.value === 'relaxed' ? 'relaxed' : 'compact';
+        crt.dataset.bgmPrsnDensity = next;
+        try { localStorage.setItem('bgm-index-reader:person-density:v1', next); } catch (e) {}
+        saveCloudPrefs({ personDensity: next });
+      }, { signal: personAc.signal });
+    }
+
+    function togglePersonFocus() {
+      var on = document.documentElement.classList.toggle('bgm-idx-focus');
+      if (focusBtn) focusBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      raf(updateLayoutVars);
+      if (on) window.scrollTo({ top: 0, behavior: isReduced() ? 'auto' : 'smooth' });
+    }
+    if (focusBtn) focusBtn.addEventListener('click', togglePersonFocus, { signal: personAc.signal });
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var t = e.target;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) {
+        if (e.key === 'Escape') t.blur();
+        return;
+      }
+      if (e.key === '~' || e.key === '`' || e.key === '～') {
+        e.preventDefault();
+        togglePersonFocus();
+        return;
+      }
+      if (e.key === 'Escape' && document.documentElement.classList.contains('bgm-idx-focus')) {
+        e.preventDefault();
+        togglePersonFocus();
+        return;
+      }
+      if (e.key === '/' && search) {
+        e.preventDefault();
+        search.focus();
+      }
+    }, { signal: personAc.signal });
+
+    window.__BGM_IDX_READER_DESTROY__ = destroyPersonDirectory;
+  }
+
+  function destroyPersonDirectory() {
+    personBooted = false;
+    try { personAc.abort(); } catch (e) {}
+    personAc = new AbortController();
+    personRender = null;
+    personItems = [];
+    document.documentElement.classList.remove('bgm-idx-focus');
+    if (personToolbar) {
+      personToolbar.remove();
+      personToolbar = null;
+    }
+    var crt = $('.browserCrtList.bgm-idx-person-on');
+    if (crt) {
+      crt.classList.remove('bgm-idx-person-on');
+      crt.removeAttribute('data-bgm-prsn-density');
+      $$('div[id^="item_person"]', crt).forEach(function (item) { item.hidden = false; });
+      var wrap = $('.bgm-idx-person-list', crt);
+      if (wrap && wrap.parentNode) {
+        while (wrap.firstChild) wrap.parentNode.insertBefore(wrap.firstChild, wrap);
+        wrap.remove();
+      }
+    }
+    var style = document.getElementById('bgm-idx-style');
+    if (style) style.remove();
+    document.documentElement.classList.remove('bgm-idx-ready');
+    delete window.__BGM_IDX_READER__;
+    delete window.__BGM_IDX_READER_DESTROY__;
+  }
+
   function boot() {
     if (booted) return;
     list = $(SEL.list);
@@ -7284,17 +7489,9 @@ function addToIndex(indexId) {
         try { crtCat = new URLSearchParams(location.search).get('cat') || ''; } catch (e) {}
         var crtIsPerson = crtCat === 'person' || (!crtList.querySelector('div[id^="item_character"]') && !!crtList.querySelector('div[id^="item_person"]'));
         if (crtIsPerson && markPersonLists(crtList)) {
-          crtList.classList.add('bgm-idx-person-on');
           document.documentElement.classList.add('bgm-idx-ready');
           injectStyle();
-          window.__BGM_IDX_READER_DESTROY__ = function () {
-            crtList.classList.remove('bgm-idx-person-on');
-            var style = document.getElementById('bgm-idx-style');
-            if (style) style.remove();
-            document.documentElement.classList.remove('bgm-idx-ready');
-            delete window.__BGM_IDX_READER__;
-            delete window.__BGM_IDX_READER_DESTROY__;
-          };
+          bootPersonDirectory(crtList);
           return;
         }
         bootCharacters(crtList);
@@ -7552,7 +7749,7 @@ function addToIndex(indexId) {
       var mixedCat = '';
       try { mixedCat = new URLSearchParams(location.search).get('cat') || ''; } catch (e) {}
       if (mixedCat === 'person' && markPersonLists(crtSection)) {
-        crtSection.classList.add('bgm-idx-person-on');
+        bootPersonDirectory(crtSection);
       } else {
         bootCharacters(crtSection, true);
       }
