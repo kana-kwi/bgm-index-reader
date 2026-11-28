@@ -98,6 +98,7 @@ assert.ok(/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/.test(code
 assert.ok(code.includes('.bgm-idx-score-mymark'), 'personal rating marker style');
 assert.ok(code.includes('data-bgm-grid-info="always"'), 'cover info always style');
 assert.ok(code.includes('@media (max-width: 480px)'), 'mobile cover sizes');
+assert.ok(code.includes('div.inner > p.info'), 'grid keeps info node');
 
 const staffBtn = doc.getElementById('bgm-idx-staff');
 staffBtn.click();

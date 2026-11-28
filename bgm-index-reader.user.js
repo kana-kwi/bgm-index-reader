@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangumi 目录页阅读优化
 // @namespace    https://bgm.tv/
-// @version      0.1.68
+// @version      0.1.69
 // @description  目录页双列/封面墙、角标布局；收藏与修改收藏使用站点原版
 // @match        https://bgm.tv/index/*
 // @match        https://bangumi.tv/index/*
@@ -895,7 +895,7 @@ html.bgm-idx-focus #browserItemList.bgm-idx-on {
   opacity: 1;
   transform: none;
 }
-#browserItemList.bgm-idx-on[data-bgm-view="grid"] li.item p.info,
+
 #browserItemList.bgm-idx-on[data-bgm-view="grid"] li.item div.collectBlock,
 #browserItemList.bgm-idx-on[data-bgm-view="grid"] li.item p.collectInfo,
 #browserItemList.bgm-idx-on[data-bgm-view="grid"] li.item p.tools,
@@ -959,6 +959,21 @@ html.bgm-idx-focus #browserItemList.bgm-idx-on {
 }
 #browserItemList.bgm-idx-on[data-bgm-view="grid"] li.item > div.inner > *:not(h3) {
   display: none !important;
+}
+#browserItemList.bgm-idx-on[data-bgm-view="grid"] li.item > div.inner > p.info {
+  display: block !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: 0;
 }
 #browserItemList.bgm-idx-on[data-bgm-view="grid"] > li.item:hover > div.inner > h3,
 #browserItemList.bgm-idx-on[data-bgm-view="grid"] > li.item:hover .bgm-idx-score,
